@@ -1,0 +1,16 @@
+[Unit]
+Description=VPK Shadowsocks Encrypted SOCKS5 Proxy
+After=network.target
+
+[Service]
+Type=simple
+User=proxyd
+Group=proxyd
+ExecStart=/usr/bin/ss-server -c /etc/vpk/shadowsocks.json -v
+Restart=on-failure
+RestartSec=5s
+StandardOutput=append:/var/log/vpk/shadowsocks.log
+StandardError=append:/var/log/vpk/shadowsocks.log
+
+[Install]
+WantedBy=multi-user.target

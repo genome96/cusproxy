@@ -281,7 +281,7 @@ install_packages() {
   
   if [[ "$MODE" == "prod" ]]; then
     if [[ "$ENABLE_SOCKS" == true ]]; then
-      packages+=(dante-server)
+      packages+=(dante-server shadowsocks-libev)
     fi
     if [[ "$ENABLE_HTTPS" == true ]]; then
       packages+=(squid apache2-utils)
@@ -814,18 +814,8 @@ TIMEOUTclose = 0
 EOF
   fi
   
-  if [[ "$ENABLE_SOCKS" == true ]]; then
-    cat >> /etc/stunnel/vpk.conf <<EOF
-
-# SOCKS5 with TLS
-[socks5-tls]
-accept = 0.0.0.0:11080
-connect = 127.0.0.1:1080
-cert = ${CONFIG_DIR}/certs/server.crt
-key = ${CONFIG_DIR}/certs/server.key
-TIMEOUTclose = 0
-EOF
-  fi
+  # NOTE: SOCKS5+TLS (port 11080) is now handled by Shadowsocks with encryption
+  # The stunnel approach doesn't work with standard SOCKS5 clients
   
   chmod 644 /etc/stunnel/vpk.conf
   
@@ -835,6 +825,37 @@ EOF
   systemctl mask stunnel4 2>/dev/null || true
   
   log_success "stunnel configured"
+}
+
+configure_shadowsocks() {
+  log_info "Configuring Shadowsocks encrypted SOCKS5 proxy..."
+  
+  # Generate a secure random password if not set
+  local SS_PASSWORD="${QUICK_PASSWORD:-$(openssl rand -base64 24)}"
+  
+  # Create shadowsocks configuration
+  cat > ${CONFIG_DIR}/shadowsocks.json <<EOF
+{
+    "server": "0.0.0.0",
+    "server_port": 11080,
+    "password": "${SS_PASSWORD}",
+    "timeout": 300,
+    "method": "chacha20-ietf-poly1305",
+    "mode": "tcp_and_udp",
+    "fast_open": false,
+    "nameserver": "8.8.8.8"
+}
+EOF
+  
+  chmod 644 ${CONFIG_DIR}/shadowsocks.json
+  
+  # Create log file with proper permissions
+  touch /var/log/vpk/shadowsocks.log
+  chown ${PROXY_USER}:${PROXY_USER} /var/log/vpk/shadowsocks.log
+  chmod 644 /var/log/vpk/shadowsocks.log
+  
+  log_success "Shadowsocks configured on port 11080 with chacha20-ietf-poly1305 encryption"
+  log_info "Shadowsocks password: ${SS_PASSWORD}"
 }
 
 create_systemd_units() {
@@ -891,7 +912,29 @@ WantedBy=multi-user.target
 EOF
   fi
   
-  # stunnel service
+  # Shadowsocks service (replaces stunnel SOCKS5+TLS on port 11080)
+  if [[ "$ENABLE_SOCKS" == true ]]; then
+    cat > /etc/systemd/system/vpk-shadowsocks.service <<EOF
+[Unit]
+Description=VPK Shadowsocks Encrypted SOCKS5 Proxy
+After=network.target
+
+[Service]
+Type=simple
+User=${PROXY_USER}
+Group=${PROXY_USER}
+ExecStart=/usr/bin/ss-server -c ${CONFIG_DIR}/shadowsocks.json -v
+Restart=on-failure
+RestartSec=5s
+StandardOutput=append:/var/log/vpk/shadowsocks.log
+StandardError=append:/var/log/vpk/shadowsocks.log
+
+[Install]
+WantedBy=multi-user.target
+EOF
+  fi
+  
+  # stunnel service (only for HTTPS+TLS on port 8443 now)
   cat > /etc/systemd/system/vpk-stunnel.service <<EOF
 [Unit]
 Description=VPK stunnel TLS Wrapper
@@ -1179,6 +1222,10 @@ enable_services() {
     systemctl enable vpk-dante
     log_info "Starting Dante SOCKS5 service..."
     systemctl start vpk-dante || log_warn "Dante service startup had issues (this is normal, it will auto-restart)"
+    
+    systemctl enable vpk-shadowsocks
+    log_info "Starting Shadowsocks encrypted SOCKS5 service..."
+    systemctl start vpk-shadowsocks || log_warn "Shadowsocks service startup had issues (this is normal, it will auto-restart)"
   fi
   
   if [[ "$ENABLE_HTTPS" == true ]]; then
@@ -1337,6 +1384,7 @@ main() {
   fi
   
   configure_stunnel
+  configure_shadowsocks
   create_systemd_units
   configure_firewall
   configure_fail2ban
