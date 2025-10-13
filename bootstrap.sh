@@ -484,11 +484,31 @@ generate_certificates() {
     # Get public IP
     PUBLIC_IP=$(curl -s https://api.ipify.org || echo "127.0.0.1")
     
+    # Create OpenSSL config file with SAN extension (required for OpenSSL 3.0)
+    cat > /tmp/ssl_cert.cnf << EOF
+[req]
+default_bits = 4096
+prompt = no
+default_md = sha256
+distinguished_name = dn
+x509_extensions = v3_ext
+
+[dn]
+CN = ${PUBLIC_IP}
+
+[v3_ext]
+subjectAltName = IP:${PUBLIC_IP}
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+EOF
+    
     openssl req -x509 -newkey rsa:4096 -nodes \
       -keyout "${CONFIG_DIR}/certs/server.key" \
       -out "${CONFIG_DIR}/certs/server.crt" \
-      -days 365 -subj "/CN=${PUBLIC_IP}" \
-      -addext "subjectAltName=IP:${PUBLIC_IP}" 2>/dev/null
+      -days 365 \
+      -config /tmp/ssl_cert.cnf
+    
+    rm -f /tmp/ssl_cert.cnf
     
     chmod 600 "${CONFIG_DIR}/certs/server.key"
     chmod 644 "${CONFIG_DIR}/certs/server.crt"
@@ -675,6 +695,7 @@ configure_stunnel() {
 setuid = ${PROXY_USER}
 setgid = ${PROXY_USER}
 output = ${LOG_DIR}/stunnel.log
+foreground = yes
 
 # TLS options (OpenSSL 3.0 compatible)
 sslVersion = TLSv1.2
@@ -741,6 +762,7 @@ ExecStart=/usr/sbin/danted -f /etc/dante/danted.conf -p /run/danted/danted.pid
 ExecReload=/bin/kill -HUP \$MAINPID
 Restart=on-failure
 RestartSec=5
+TimeoutStartSec=30
 LimitNOFILE=65536
 
 [Install]
