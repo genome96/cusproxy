@@ -674,7 +674,6 @@ configure_stunnel() {
 # Global options
 setuid = ${PROXY_USER}
 setgid = ${PROXY_USER}
-pid = /var/run/stunnel-vpk.pid
 output = ${LOG_DIR}/stunnel.log
 
 # TLS options (OpenSSL 3.0 compatible)
