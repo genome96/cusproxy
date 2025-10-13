@@ -10,7 +10,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
 import json
 
@@ -52,8 +52,8 @@ class Database:
         with open(self.encryption_key_path, 'rb') as f:
             master_key = f.read().strip()
 
-        # Derive Fernet key from master key using PBKDF2
-        kdf = PBKDF2(
+        # Derive Fernet key from master key using PBKDF2HMAC
+        kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
             salt=b'vpk-salt-2025',  # Static salt for deterministic key
