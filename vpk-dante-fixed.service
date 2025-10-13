@@ -1,0 +1,18 @@
+[Unit]
+Description=VPK Dante SOCKS5 Server
+After=network.target
+
+[Service]
+Type=forking
+PIDFile=/run/danted/danted.pid
+RuntimeDirectory=danted
+RuntimeDirectoryMode=0755
+ExecStart=/usr/sbin/danted -f /etc/dante/danted.conf -p /run/danted/danted.pid
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=30
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
