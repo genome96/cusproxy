@@ -283,11 +283,13 @@ create_directories() {
   mkdir -p "${INSTALL_DIR}"/{data,logs,tmp}
   mkdir -p "${CONFIG_DIR}"/{certs,backup}
   mkdir -p "${LOG_DIR}"
+  mkdir -p /run/squid
   
   # Set ownership
   chown -R "${SERVICE_USER}:${SERVICE_USER}" "${INSTALL_DIR}"
   chown -R "${SERVICE_USER}:${SERVICE_USER}" "${LOG_DIR}"
   chown -R root:root "${CONFIG_DIR}"
+  chown proxy:proxy /run/squid
   
   # Set permissions
   chmod 750 "${INSTALL_DIR}"
@@ -295,6 +297,7 @@ create_directories() {
   chmod 750 "${LOG_DIR}"
   chmod 750 "${CONFIG_DIR}"
   chmod 750 "${CONFIG_DIR}/certs"
+  chmod 755 /run/squid
   
   log_success "Directory structure created"
 }
@@ -400,6 +403,8 @@ generate_certificates() {
     
     chmod 600 "${CONFIG_DIR}/certs/server.key"
     chmod 644 "${CONFIG_DIR}/certs/server.crt"
+    chown ${PROXY_USER}:${PROXY_USER} "${CONFIG_DIR}/certs/server.key"
+    chown ${PROXY_USER}:${PROXY_USER} "${CONFIG_DIR}/certs/server.crt"
     
     log_success "Self-signed certificate generated (valid for 365 days)"
     log_warn "Remember to rotate certificate before expiration"
@@ -579,13 +584,11 @@ setgid = ${PROXY_USER}
 pid = /var/run/stunnel-vpk.pid
 output = ${LOG_DIR}/stunnel.log
 
-# TLS options
+# TLS options (OpenSSL 3.0 compatible)
 sslVersion = TLSv1.3
 options = NO_SSLv2
 options = NO_SSLv3
 options = NO_TLSv1
-options = NO_TLSv1.1
-options = NO_TLSv1.2
 ciphers = TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256
 EOF
   
