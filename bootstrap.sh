@@ -147,6 +147,63 @@ check_ubuntu() {
 }
 
 confirm_installation() {
+  # Prompt for domain if not provided and not in auto-yes mode
+  if [[ "$AUTO_YES" != true ]] && [[ -z "$DOMAIN" ]]; then
+    cat <<EOF
+
+${YELLOW}=============================================================
+SSL Certificate Setup
+=============================================================${NC}
+
+Do you have a domain name pointed to this server's IP address?
+
+If YES:
+  - You will get a valid Let's Encrypt SSL certificate
+  - No browser warnings
+  - Certificate auto-renews every 60 days
+  - ${GREEN}Recommended for production${NC}
+
+If NO:
+  - Self-signed certificate will be used
+  - Browser warnings expected
+  - ${YELLOW}OK for testing/development${NC}
+
+${BLUE}Cloudflare DNS Setup (if using Cloudflare):${NC}
+  1. Log in to Cloudflare dashboard
+  2. Go to your domain's DNS settings
+  3. Add an A record:
+     - Name: proxy (or subdomain of your choice)
+     - IPv4 address: $(curl -s https://api.ipify.org)
+     - Proxy status: ${YELLOW}DNS only (gray cloud)${NC} ⚠️
+     - TTL: Auto
+  4. Wait 1-2 minutes for DNS propagation
+
+${RED}IMPORTANT: Cloudflare proxy MUST be disabled (gray cloud)${NC}
+${RED}Otherwise Let's Encrypt verification will fail!${NC}
+
+EOF
+    
+    read -p "Do you have a domain name ready? (y/N): " -r
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+      echo
+      read -p "Enter your domain name (e.g., proxy.example.com): " DOMAIN
+      DOMAIN=$(echo "$DOMAIN" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+      
+      if [[ -z "$DOMAIN" ]]; then
+        log_warn "No domain provided, will use self-signed certificate"
+      else
+        log_info "Will obtain Let's Encrypt certificate for: ${DOMAIN}"
+        echo
+        read -p "Is the DNS A record already configured and propagated? (y/N): " -r
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+          log_warn "Please configure DNS first, then re-run with --domain ${DOMAIN}"
+          log_info "Continuing with self-signed certificate for now..."
+          DOMAIN=""
+        fi
+      fi
+    fi
+  fi
+  
   if [[ "$AUTO_YES" == true ]]; then
     return 0
   fi
@@ -232,7 +289,7 @@ install_packages() {
   fi
   
   if [[ -n "$DOMAIN" ]]; then
-    packages+=(certbot)
+    packages+=(socat) # Required for acme.sh
   fi
   
   # Install with DEBIAN_FRONTEND=noninteractive to avoid prompts
@@ -283,16 +340,24 @@ create_directories() {
   mkdir -p "${INSTALL_DIR}"/{data,logs,tmp}
   mkdir -p "${CONFIG_DIR}"/{certs,backup}
   mkdir -p "${LOG_DIR}"
+  mkdir -p /etc/dante
+  
+  # Pre-create log files with correct ownership
+  touch "${LOG_DIR}/squid.log"
+  touch "${LOG_DIR}/stunnel.log"
+  touch "${LOG_DIR}/danted.log"
+  touch "${LOG_DIR}/vpk.log"
   
   # Set ownership
   chown -R "${SERVICE_USER}:${SERVICE_USER}" "${INSTALL_DIR}"
-  chown -R "${SERVICE_USER}:${SERVICE_USER}" "${LOG_DIR}"
+  chown -R "${PROXY_USER}:${PROXY_USER}" "${LOG_DIR}"
   chown -R root:root "${CONFIG_DIR}"
   
   # Set permissions
   chmod 750 "${INSTALL_DIR}"
   chmod 700 "${DATA_DIR}"
-  chmod 750 "${LOG_DIR}"
+  chmod 755 "${LOG_DIR}"
+  chmod 644 "${LOG_DIR}"/*.log
   chmod 750 "${CONFIG_DIR}"
   chmod 750 "${CONFIG_DIR}/certs"
   
@@ -361,27 +426,53 @@ generate_certificates() {
   log_info "Setting up TLS certificates..."
   
   if [[ -n "$DOMAIN" ]]; then
-    # Use Let's Encrypt
-    log_info "Obtaining Let's Encrypt certificate for ${DOMAIN}..."
+    # Use acme.sh for Let's Encrypt
+    log_info "Installing acme.sh..."
     
-    # Stop services that might use port 80
-    systemctl stop squid 2>/dev/null || true
-    
-    certbot certonly --standalone --non-interactive --agree-tos \
-      --email "admin@${DOMAIN}" -d "${DOMAIN}" || {
-      log_warn "Failed to obtain Let's Encrypt certificate"
-      log_info "Falling back to self-signed certificate"
-      DOMAIN=""
-    }
+    # Install acme.sh
+    if [[ ! -d /root/.acme.sh ]]; then
+      curl -s https://get.acme.sh | sh -s || {
+        log_error "Failed to install acme.sh"
+        log_info "Falling back to self-signed certificate"
+        DOMAIN=""
+      }
+    fi
     
     if [[ -n "$DOMAIN" ]]; then
-      # Link certificates
-      ln -sf "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" "${CONFIG_DIR}/certs/server.crt"
-      ln -sf "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" "${CONFIG_DIR}/certs/server.key"
-      log_success "Let's Encrypt certificate installed"
+      log_info "Obtaining Let's Encrypt certificate for ${DOMAIN}..."
       
-      # Set up auto-renewal
-      systemctl enable certbot.timer 2>/dev/null || true
+      # Stop services that might use port 80/443
+      systemctl stop squid 2>/dev/null || true
+      systemctl stop apache2 2>/dev/null || true
+      systemctl stop nginx 2>/dev/null || true
+      
+      # Issue certificate using standalone mode
+      /root/.acme.sh/acme.sh --issue -d "${DOMAIN}" --standalone --keylength 4096 || {
+        log_warn "Failed to obtain Let's Encrypt certificate"
+        log_info "Falling back to self-signed certificate"
+        DOMAIN=""
+      }
+      
+      if [[ -n "$DOMAIN" ]]; then
+        # Install certificates to our directory
+        /root/.acme.sh/acme.sh --install-cert -d "${DOMAIN}" \
+          --key-file "${CONFIG_DIR}/certs/server.key" \
+          --fullchain-file "${CONFIG_DIR}/certs/server.crt" \
+          --reloadcmd "systemctl reload vpk-stunnel" || {
+          log_error "Failed to install certificate"
+          DOMAIN=""
+        }
+        
+        if [[ -n "$DOMAIN" ]]; then
+          chmod 600 "${CONFIG_DIR}/certs/server.key"
+          chmod 644 "${CONFIG_DIR}/certs/server.crt"
+          chown ${PROXY_USER}:${PROXY_USER} "${CONFIG_DIR}/certs/server.key"
+          chown ${PROXY_USER}:${PROXY_USER} "${CONFIG_DIR}/certs/server.crt"
+          
+          log_success "Let's Encrypt certificate installed"
+          log_info "Certificate will auto-renew every 60 days"
+        fi
+      fi
     fi
   fi
   
@@ -404,7 +495,7 @@ generate_certificates() {
     chown ${PROXY_USER}:${PROXY_USER} "${CONFIG_DIR}/certs/server.crt"
     
     log_success "Self-signed certificate generated (valid for 365 days)"
-    log_warn "Remember to rotate certificate before expiration"
+    log_warn "For production, use --domain option with a valid domain name"
   fi
 }
 
@@ -433,8 +524,9 @@ internal: 0.0.0.0 port = 1080
 # External interface
 external: ${IFACE}
 
-# Authentication methods
-socksmethod: username
+# Authentication methods (temporarily disabled until VPK database is initialized)
+# Change to 'socksmethod: username' after running 'vpk init-db' and creating users
+socksmethod: none
 
 # Service users
 user.privileged: root
@@ -452,7 +544,7 @@ socks pass {
     protocol: tcp udp
     command: bind connect udpassociate
     log: connect disconnect error data transfer
-    socksmethod: username
+    socksmethod: none
 }
 
 # Block by default
