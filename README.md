@@ -44,7 +44,7 @@ A complete, production-ready proxy server management system for Ubuntu 22.04 VPS
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/yourusername/vps-proxy-kit.git
+git clone https://github.com/genome96/vps-proxy-kit.git
 cd vps-proxy-kit
 
 # 2. Run bootstrap installer (as root)
@@ -88,7 +88,7 @@ curl --proxy https://alice:YourSecurePassword123!@34.214.132.38:8443 https://ipi
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/vps-proxy-kit.git
+git clone https://github.com/genome96/vps-proxy-kit.git
 cd vps-proxy-kit
 
 # Run bootstrap installer
@@ -1006,7 +1006,7 @@ Contributions welcome! Please:
 
 ## Support
 
-- GitHub Issues: https://github.com/yourusername/vps-proxy-kit/issues
+- GitHub Issues: https://github.com/genome96/vps-proxy-kit/issues
 - Documentation: https://vps-proxy-kit.readthedocs.io
 - Email: support@example.com
 

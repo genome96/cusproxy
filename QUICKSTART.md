@@ -20,7 +20,7 @@ sudo apt update && sudo apt upgrade -y
 
 ```bash
 cd /tmp
-git clone https://github.com/yourusername/vps-proxy-kit.git
+git clone https://github.com/genome96/vps-proxy-kit.git
 cd vps-proxy-kit
 ```
 
@@ -217,7 +217,7 @@ vpk show-sessions
 
 ## Support
 
-- GitHub Issues: https://github.com/yourusername/vps-proxy-kit/issues
+- GitHub Issues: https://github.com/genome96/vps-proxy-kit/issues
 - Documentation: See README.md
 
 ---

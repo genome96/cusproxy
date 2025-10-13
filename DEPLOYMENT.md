@@ -14,7 +14,7 @@
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/vps-proxy-kit.git
+git clone https://github.com/genome96/vps-proxy-kit.git
 cd vps-proxy-kit
 ```
 
@@ -515,11 +515,11 @@ Common issues and solutions documented in:
 
 ## Sign-Off
 
-Deployment completed by: ******\_\_\_******  
-Date: ******\_\_\_******  
-Sign-off: ******\_\_\_******
+Deployment completed by: **\*\***\_\_\_**\*\***  
+Date: **\*\***\_\_\_**\*\***  
+Sign-off: **\*\***\_\_\_**\*\***
 
-Next review date: ******\_\_\_******
+Next review date: **\*\***\_\_\_**\*\***
 
 ---
 

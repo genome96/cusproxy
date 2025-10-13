@@ -375,7 +375,7 @@ vpk restore --input /backup/vpk-20251013.tar.gz.gpg --yes
 **Recovery Steps**:
 
 1. Provision new VPS with Ubuntu 22.04
-2. Clone repository: `git clone https://github.com/yourusername/vps-proxy-kit.git`
+2. Clone repository: `git clone https://github.com/genome96/vps-proxy-kit.git`
 3. Run bootstrap: `sudo ./bootstrap.sh --yes`
 4. Restore backup: `vpk restore --input /backup/vpk-latest.tar.gz.gpg`
 5. Update IP addresses: `vpk config set external_ip NEW_IP`
