@@ -415,6 +415,32 @@ EOF
   log_success "Python dependencies installed"
 }
 
+install_vpk_package() {
+  log_info "Installing VPK package..."
+  
+  # Get the directory where this script is located
+  SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+  
+  # Copy VPK package to installation directory
+  if [[ -d "${SCRIPT_DIR}/vpk" ]]; then
+    log_info "Copying VPK package files..."
+    cp -r "${SCRIPT_DIR}/vpk" "${INSTALL_DIR}/"
+    cp "${SCRIPT_DIR}/setup.py" "${INSTALL_DIR}/"
+    chown -R "${SERVICE_USER}:${SERVICE_USER}" "${INSTALL_DIR}/vpk" "${INSTALL_DIR}/setup.py"
+    
+    # Install the package in development mode
+    log_info "Installing VPK package in editable mode..."
+    cd "${INSTALL_DIR}"
+    sudo -u "${SERVICE_USER}" "${VENV_DIR}/bin/pip" install -e . -q
+    
+    log_success "VPK package installed"
+  else
+    log_error "VPK package directory not found at ${SCRIPT_DIR}/vpk"
+    log_error "Make sure you're running bootstrap.sh from the cusproxy directory"
+    exit 1
+  fi
+}
+
 generate_encryption_key() {
   log_info "Generating encryption keys..."
   
@@ -1287,6 +1313,7 @@ main() {
   create_directories
   setup_python_venv
   install_python_deps
+  install_vpk_package
   generate_encryption_key
   generate_certificates
   
