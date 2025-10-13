@@ -426,12 +426,26 @@ install_vpk_package() {
     log_info "Copying VPK package files..."
     cp -r "${SCRIPT_DIR}/vpk" "${INSTALL_DIR}/"
     cp "${SCRIPT_DIR}/setup.py" "${INSTALL_DIR}/"
-    chown -R "${SERVICE_USER}:${SERVICE_USER}" "${INSTALL_DIR}/vpk" "${INSTALL_DIR}/setup.py"
+    cp "${SCRIPT_DIR}/README.md" "${INSTALL_DIR}/"
+    chown -R "${SERVICE_USER}:${SERVICE_USER}" "${INSTALL_DIR}/vpk" "${INSTALL_DIR}/setup.py" "${INSTALL_DIR}/README.md"
     
     # Install the package in development mode
     log_info "Installing VPK package in editable mode..."
     cd "${INSTALL_DIR}"
     sudo -u "${SERVICE_USER}" "${VENV_DIR}/bin/pip" install -e . -q
+    
+    # Fix permissions for venv directories
+    chmod 755 "${INSTALL_DIR}" "${VENV_DIR}" "${VENV_DIR}/bin"
+    
+    # Fix permissions for secret key and config to allow proxyadmin to read
+    chmod 640 "${CONFIG_DIR}/secret.key"
+    chown root:${SERVICE_USER} "${CONFIG_DIR}/secret.key"
+    chmod 644 "${CONFIG_DIR}/config.yml"
+    
+    # Create and fix log file permissions
+    touch "${LOG_DIR}/vpk.log"
+    chown ${SERVICE_USER}:${SERVICE_USER} "${LOG_DIR}/vpk.log"
+    chmod 644 "${LOG_DIR}/vpk.log"
     
     log_success "VPK package installed"
   else
