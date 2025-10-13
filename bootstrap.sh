@@ -446,8 +446,9 @@ generate_certificates() {
       systemctl stop apache2 2>/dev/null || true
       systemctl stop nginx 2>/dev/null || true
       
-      # Issue certificate using standalone mode
-      /root/.acme.sh/acme.sh --issue -d "${DOMAIN}" --standalone --keylength 4096 || {
+      # Issue certificate using standalone mode with Let's Encrypt
+      /root/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+      /root/.acme.sh/acme.sh --issue -d "${DOMAIN}" --standalone --keylength 4096 --force || {
         log_warn "Failed to obtain Let's Encrypt certificate"
         log_info "Falling back to self-signed certificate"
         DOMAIN=""
@@ -543,7 +544,7 @@ socks pass {
     from: 0.0.0.0/0 to: 0.0.0.0/0
     protocol: tcp udp
     command: bind connect udpassociate
-    log: connect disconnect error data transfer
+    log: connect disconnect error
     socksmethod: none
 }
 
@@ -677,11 +678,12 @@ pid = /var/run/stunnel-vpk.pid
 output = ${LOG_DIR}/stunnel.log
 
 # TLS options (OpenSSL 3.0 compatible)
-sslVersion = TLSv1.3
+sslVersion = TLSv1.2
 options = NO_SSLv2
 options = NO_SSLv3
 options = NO_TLSv1
-ciphers = TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256
+options = NO_TLSv1_1
+ciphers = HIGH:!aNULL:!MD5:!RC4
 EOF
   
   if [[ "$ENABLE_HTTPS" == true ]]; then
