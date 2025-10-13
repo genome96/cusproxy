@@ -283,13 +283,11 @@ create_directories() {
   mkdir -p "${INSTALL_DIR}"/{data,logs,tmp}
   mkdir -p "${CONFIG_DIR}"/{certs,backup}
   mkdir -p "${LOG_DIR}"
-  mkdir -p /run/squid
   
   # Set ownership
   chown -R "${SERVICE_USER}:${SERVICE_USER}" "${INSTALL_DIR}"
   chown -R "${SERVICE_USER}:${SERVICE_USER}" "${LOG_DIR}"
   chown -R root:root "${CONFIG_DIR}"
-  chown proxy:proxy /run/squid
   
   # Set permissions
   chmod 750 "${INSTALL_DIR}"
@@ -297,7 +295,6 @@ create_directories() {
   chmod 750 "${LOG_DIR}"
   chmod 750 "${CONFIG_DIR}"
   chmod 750 "${CONFIG_DIR}/certs"
-  chmod 755 /run/squid
   
   log_success "Directory structure created"
 }
@@ -546,8 +543,11 @@ forwarded_for on
 via on
 
 # Service user
-cache_effective_user ${PROXY_USER}
-cache_effective_group ${PROXY_USER}
+cache_effective_user proxy
+cache_effective_group proxy
+
+# PID file
+pid_filename /run/squid/squid.pid
 
 # Connection limits per user (soft limit)
 # delay_pools 1
@@ -641,9 +641,13 @@ After=network.target
 Type=forking
 User=${PROXY_USER}
 Group=${PROXY_USER}
-ExecStart=/usr/sbin/danted -f /etc/dante/danted.conf
+PIDFile=/run/danted/danted.pid
+RuntimeDirectory=danted
+RuntimeDirectoryMode=0755
+ExecStart=/usr/sbin/danted -f /etc/dante/danted.conf -p /run/danted/danted.pid
 ExecReload=/bin/kill -HUP \$MAINPID
 Restart=on-failure
+RestartSec=5
 LimitNOFILE=65536
 
 [Install]
@@ -660,11 +664,15 @@ After=network.target
 
 [Service]
 Type=forking
-User=${PROXY_USER}
-Group=${PROXY_USER}
+User=proxy
+Group=proxy
+PIDFile=/run/squid/squid.pid
+RuntimeDirectory=squid
+RuntimeDirectoryMode=0755
 ExecStart=/usr/sbin/squid -f /etc/squid/squid.conf -sYC
 ExecReload=/bin/kill -HUP \$MAINPID
 Restart=on-failure
+RestartSec=5
 LimitNOFILE=65536
 
 [Install]
