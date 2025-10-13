@@ -14,8 +14,8 @@
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/genome96/vps-proxy-kit.git
-cd vps-proxy-kit
+git clone https://github.com/genome96/cusproxy.git
+cd cusproxy
 ```
 
 - [ ] Repository cloned successfully

@@ -385,8 +385,8 @@ MIT License - see LICENSE file
 
 ## Support
 
-- **GitHub**: https://github.com/genome96/vps-proxy-kit
-- **Issues**: https://github.com/genome96/vps-proxy-kit/issues
+- **GitHub**: https://github.com/genome96/cusproxy
+- **Issues**: https://github.com/genome96/cusproxy/issues
 - **Documentation**: See README.md, SECURITY.md, DEPLOYMENT.md
 
 ---

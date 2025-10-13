@@ -20,8 +20,8 @@ sudo apt update && sudo apt upgrade -y
 
 ```bash
 cd /tmp
-git clone https://github.com/genome96/vps-proxy-kit.git
-cd vps-proxy-kit
+git clone https://github.com/genome96/cusproxy.git
+cd cusproxy
 ```
 
 ### 3. Run Bootstrap Installer
@@ -217,7 +217,7 @@ vpk show-sessions
 
 ## Support
 
-- GitHub Issues: https://github.com/genome96/vps-proxy-kit/issues
+- GitHub Issues: https://github.com/genome96/cusproxy/issues
 - Documentation: See README.md
 
 ---

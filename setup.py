@@ -11,7 +11,7 @@ setup(
     description="Production-ready proxy server management system for Ubuntu 22.04",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/genome96/vps-proxy-kit",
+    url="https://github.com/genome96/cusproxy",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
