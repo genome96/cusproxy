@@ -1,4 +1,4 @@
-### 🚀CusProxy - Multi-Protocol Proxy Server# 🔐 CusProxy - Multi-Protocol Proxy Server
+## CusProxy - Multi-Protocol Proxy Server
 
 ## Requirements
 
