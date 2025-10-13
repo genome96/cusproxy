@@ -11,11 +11,13 @@ A production-ready proxy server setup for Ubuntu that provides multiple proxy pr
 ## Installation
 
 1.  **Clone the repository:**
+
     ```bash
     git clone https://github.com/genome96/cusproxy.git
     ```
 
 2.  **Navigate into the project directory:**
+
     ```bash
     cd cusproxy
     ```
@@ -25,11 +27,11 @@ A production-ready proxy server setup for Ubuntu that provides multiple proxy pr
     sudo bash bootstrap.sh
     ```
     This script will automatically install and configure:
-    -   Dante (SOCKS5 Proxy)
-    -   Squid (HTTP/HTTPS Proxy)
-    -   stunnel (TLS wrapper for HTTPS)
-    -   Shadowsocks (Encrypted Proxy)
-    -   Systemd services for auto-start on boot.
+    - Dante (SOCKS5 Proxy)
+    - Squid (HTTP/HTTPS Proxy)
+    - stunnel (TLS wrapper for HTTPS)
+    - Shadowsocks (Encrypted Proxy)
+    - Systemd services for auto-start on boot.
 
 ## Usage
 
@@ -41,10 +43,10 @@ Replace `your-server.com` with your server's actual IP address or domain name.
 
 This is the most secure option, suitable for all use cases.
 
--   **Host**: `your-server.com`
--   **Port**: `8443`
--   **Username**: `admin`
--   **Password**: The password you set during installation.
+- **Host**: `your-server.com`
+- **Port**: `8443`
+- **Username**: `admin`
+- **Password**: The password you set during installation.
 
 ---
 
@@ -52,10 +54,10 @@ This is the most secure option, suitable for all use cases.
 
 Fast, but not encrypted. Use only on trusted networks.
 
--   **Host**: `your-server.com`
--   **Port**: `1080`
--   **Username**: `socksadmin`
--   **Password**: The password you set for the `socksadmin` user.
+- **Host**: `your-server.com`
+- **Port**: `1080`
+- **Username**: `socksadmin`
+- **Password**: The password you set for the `socksadmin` user.
 
 ---
 
@@ -63,10 +65,10 @@ Fast, but not encrypted. Use only on trusted networks.
 
 Basic proxy, not encrypted.
 
--   **Host**: `your-server.com`
--   **Port**: `3128`
--   **Username**: `admin`
--   **Password**: The password you set during installation.
+- **Host**: `your-server.com`
+- **Port**: `3128`
+- **Username**: `admin`
+- **Password**: The password you set during installation.
 
 ---
 
@@ -84,10 +86,10 @@ Provides strong encryption, requires a Shadowsocks client.
     sudo systemctl restart vpk-shadowsocks
     ```
 4.  Use the following details in your client:
-    -   **Server**: `your-server.com`
-    -   **Port**: `11080`
-    -   **Password**: Your new password
-    -   **Cipher**: `chacha20-ietf-poly1305`
+    - **Server**: `your-server.com`
+    - **Port**: `11080`
+    - **Password**: Your new password
+    - **Cipher**: `chacha20-ietf-poly1305`
 
 ---
 
@@ -95,31 +97,65 @@ Provides strong encryption, requires a Shadowsocks client.
 
 ### Changing Passwords
 
--   **SOCKS5 (`socksadmin` user):**
-    ```bash
-    sudo passwd socksadmin
-    ```
+- **SOCKS5 (`socksadmin` user):**
 
--   **HTTP/HTTPS (`admin` user):**
-    First, ensure `apache2-utils` is installed:
-    ```bash
-    sudo apt-get update && sudo apt-get install -y apache2-utils
-    ```
-    Then, create a new password (this will overwrite the old one):
-    ```bash
-    sudo htpasswd -c /etc/squid/passwords admin
-    ```
-    Finally, restart the proxy services:
-    ```bash
-    sudo systemctl restart vpk-squid vpk-stunnel
-    ```
+  ```bash
+  sudo passwd socksadmin
+  ```
+
+- **HTTP/HTTPS (`admin` user):**
+  First, ensure `apache2-utils` is installed:
+  ```bash
+  sudo apt-get update && sudo apt-get install -y apache2-utils
+  ```
+  Then, create a new password (this will overwrite the old one):
+  ```bash
+  echo 'your-new-password' | sudo htpasswd -ci /etc/vpk/htpasswd admin
+  ```
+  Finally, restart the proxy services:
+  ```bash
+  sudo systemctl restart vpk-squid vpk-stunnel
+  ```
 
 ### Managing Services
 
 You can manage the proxy services using `systemctl`:
 
--   **Check Status**: `sudo systemctl status vpk-dante`
--   **Restart**: `sudo systemctl restart vpk-dante`
--   **View Logs**: `sudo journalctl -u vpk-dante -n 50`
+- **Check Status**: `sudo systemctl status vpk-dante`
+- **Restart**: `sudo systemctl restart vpk-dante`
+- **View Logs**: `sudo journalctl -u vpk-dante -n 50`
 
 (Replace `vpk-dante` with `vpk-squid`, `vpk-stunnel`, or `vpk-shadowsocks` for the other services).
+
+---
+
+## Troubleshooting
+
+### stunnel Service Won't Start
+
+If the `vpk-stunnel` service fails to start or times out, check the systemd service configuration:
+
+1. Verify the service type matches the stunnel configuration:
+   ```bash
+   sudo cat /etc/stunnel/vpk.conf | grep foreground
+   ```
+   If `foreground = yes`, then the systemd service should use `Type=simple`.
+
+2. Fix the service type if needed:
+   ```bash
+   sudo sed -i 's/Type=forking/Type=simple/' /etc/systemd/system/vpk-stunnel.service
+   sudo systemctl daemon-reload
+   sudo systemctl restart vpk-stunnel
+   ```
+
+3. Verify SSL certificates exist:
+   ```bash
+   ls -l /etc/vpk/certs/server.crt /etc/vpk/certs/server.key
+   ```
+
+### Authentication Failures
+
+If you're getting authentication errors, verify you're using the correct password file:
+
+- For HTTP/HTTPS proxies, check: `/etc/vpk/htpasswd`
+- For SOCKS5, use the system user password: `sudo passwd socksadmin`
