@@ -1,0 +1,284 @@
+# VPS Proxy Kit Client Configuration Examples
+
+## SOCKS5 (No TLS) - Port 1080
+
+### Using curl
+```bash
+curl --socks5 username:password@34.214.132.38:1080 https://ipinfo.io/ip
+```
+
+### Using Firefox
+1. Open Settings → Network Settings
+2. Select "Manual proxy configuration"
+3. SOCKS Host: 34.214.132.38
+4. Port: 1080
+5. Select "SOCKS v5"
+6. Check "Proxy DNS when using SOCKS v5"
+
+### Using Python requests
+```python
+import requests
+
+proxies = {
+    'http': 'socks5://username:password@34.214.132.38:1080',
+    'https': 'socks5://username:password@34.214.132.38:1080'
+}
+
+response = requests.get('https://ipinfo.io/ip', proxies=proxies)
+print(response.text)
+```
+
+### Using ssh -D (Dynamic port forwarding)
+```bash
+# Create SSH tunnel with SOCKS5 proxy
+ssh -D 1080 -N -f user@34.214.132.38
+
+# Then configure applications to use localhost:1080 as SOCKS5 proxy
+```
+
+---
+
+## SOCKS5 with TLS - Port 11080
+
+### Client-side stunnel configuration
+Create `stunnel-client.conf`:
+```
+client = yes
+
+[socks5-tls]
+accept = 127.0.0.1:1080
+connect = 34.214.132.38:11080
+verify = 2
+CAfile = /path/to/server-cert.crt
+```
+
+Start stunnel:
+```bash
+stunnel stunnel-client.conf
+```
+
+Now use localhost:1080 as SOCKS5 proxy with TLS encryption to server.
+
+---
+
+## HTTP/HTTPS Proxy (No TLS) - Port 3128
+
+### Using curl
+```bash
+curl --proxy http://username:password@34.214.132.38:3128 https://ipinfo.io/ip
+```
+
+### Using wget
+```bash
+wget -e use_proxy=yes -e http_proxy=http://username:password@34.214.132.38:3128 https://ipinfo.io/ip
+```
+
+### Using Python requests
+```python
+import requests
+
+proxies = {
+    'http': 'http://username:password@34.214.132.38:3128',
+    'https': 'http://username:password@34.214.132.38:3128'
+}
+
+response = requests.get('https://ipinfo.io/ip', proxies=proxies)
+print(response.text)
+```
+
+### System-wide proxy (Linux/macOS)
+```bash
+export http_proxy=http://username:password@34.214.132.38:3128
+export https_proxy=http://username:password@34.214.132.38:3128
+export HTTP_PROXY=$http_proxy
+export HTTPS_PROXY=$https_proxy
+```
+
+Add to `~/.bashrc` or `~/.zshrc` for persistence.
+
+### System-wide proxy (Windows PowerShell)
+```powershell
+$env:HTTP_PROXY="http://username:password@34.214.132.38:3128"
+$env:HTTPS_PROXY="http://username:password@34.214.132.38:3128"
+```
+
+---
+
+## HTTPS Proxy with TLS - Port 8443
+
+### Using curl (if curl supports HTTPS proxy)
+```bash
+curl --proxy https://username:password@34.214.132.38:8443 https://ipinfo.io/ip
+
+# With certificate verification
+curl --proxy https://username:password@34.214.132.38:8443 \
+     --proxy-cacert /path/to/server-cert.crt \
+     https://ipinfo.io/ip
+
+# Skip certificate verification (not recommended for production)
+curl --proxy https://username:password@34.214.132.38:8443 \
+     --proxy-insecure \
+     https://ipinfo.io/ip
+```
+
+### Using Chrome/Chromium
+Launch with proxy settings:
+```bash
+google-chrome --proxy-server="https://34.214.132.38:8443"
+```
+
+Then authenticate when prompted.
+
+---
+
+## Token-based Authentication
+
+If you created a user with token authentication:
+
+```bash
+vpk create-user --username apiuser --token-auth --protocol https --quota 100GB
+# Output: Token: tok_abc123def456...
+```
+
+Use the token as the password:
+
+```bash
+# SOCKS5
+curl --socks5 apiuser:tok_abc123def456@34.214.132.38:1080 https://ipinfo.io/ip
+
+# HTTP proxy
+curl --proxy http://apiuser:tok_abc123def456@34.214.132.38:3128 https://ipinfo.io/ip
+```
+
+---
+
+## Docker Container Configuration
+
+### Dockerfile with proxy
+```dockerfile
+FROM ubuntu:22.04
+
+# Set proxy environment variables
+ENV http_proxy=http://username:password@34.214.132.38:3128
+ENV https_proxy=http://username:password@34.214.132.38:3128
+
+RUN apt-get update && apt-get install -y curl
+
+# Your application
+COPY app.py /app/
+CMD ["python3", "/app/app.py"]
+```
+
+### docker run with proxy
+```bash
+docker run --rm \
+  -e http_proxy=http://username:password@34.214.132.38:3128 \
+  -e https_proxy=http://username:password@34.214.132.38:3128 \
+  ubuntu:22.04 \
+  curl https://ipinfo.io/ip
+```
+
+---
+
+## Git Configuration
+
+### Global git proxy
+```bash
+git config --global http.proxy http://username:password@34.214.132.38:3128
+git config --global https.proxy http://username:password@34.214.132.38:3128
+```
+
+### Per-repository
+```bash
+cd /path/to/repo
+git config http.proxy http://username:password@34.214.132.38:3128
+```
+
+### Remove proxy
+```bash
+git config --global --unset http.proxy
+git config --global --unset https.proxy
+```
+
+---
+
+## npm Configuration
+
+```bash
+npm config set proxy http://username:password@34.214.132.38:3128
+npm config set https-proxy http://username:password@34.214.132.38:3128
+
+# Remove
+npm config delete proxy
+npm config delete https-proxy
+```
+
+---
+
+## pip Configuration
+
+Create `~/.pip/pip.conf` (Linux/macOS) or `%APPDATA%\pip\pip.ini` (Windows):
+
+```ini
+[global]
+proxy = http://username:password@34.214.132.38:3128
+```
+
+Or use environment variable:
+```bash
+export PIP_PROXY=http://username:password@34.214.132.38:3128
+```
+
+---
+
+## Testing Connection
+
+### Test SOCKS5
+```bash
+curl --socks5 username:password@34.214.132.38:1080 https://ipinfo.io/json
+```
+
+### Test HTTP proxy
+```bash
+curl --proxy http://username:password@34.214.132.38:3128 https://ipinfo.io/json
+```
+
+### Test with authentication failure
+```bash
+# Should return 407 Proxy Authentication Required
+curl --proxy http://wronguser:wrongpass@34.214.132.38:3128 https://ipinfo.io/ip
+```
+
+---
+
+## Troubleshooting
+
+### Connection timeout
+- Check firewall: `sudo ufw status`
+- Verify proxy is running: `vpk status`
+- Test port connectivity: `telnet 34.214.132.38 1080`
+
+### Authentication failure
+- Verify credentials: `vpk user-info --username alice`
+- Check user status is 'active': `vpk list-users`
+- Check logs: `vpk view-logs --username alice`
+
+### Certificate errors (TLS)
+- Verify certificate: `openssl s_client -connect 34.214.132.38:8443`
+- Use self-signed cert flag for testing: `curl --proxy-insecure ...`
+
+---
+
+## Security Best Practices
+
+1. **Use TLS ports** (11080, 8443) when possible for encrypted proxy connections
+2. **Rotate passwords** regularly: `vpk update-password --username alice`
+3. **Use strong passwords** (min 12 characters, mixed case, numbers, symbols)
+4. **Monitor usage**: `vpk quota-usage --username alice`
+5. **Don't share credentials** between users
+6. **Use token auth** for API integrations (can be revoked without password change)
+7. **Whitelist IP ranges** if possible (edit firewall rules)
+
+---
+
+For more information, see the main README.md file.
