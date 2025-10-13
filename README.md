@@ -1,12 +1,12 @@
-# CusProxy# CusProxy - Multi-Protocol Proxy Server# CusProxy - Multi-Protocol Proxy Server# 🔐 CusProxy - Multi-Protocol Proxy Server
+# CusProxy# CusProxy# CusProxy - Multi-Protocol Proxy Server# CusProxy - Multi-Protocol Proxy Server# 🔐 CusProxy - Multi-Protocol Proxy Server
 
 
 
-Multi-protocol proxy server with authentication and encryption support.
+Multi-protocol proxy server with authentication.
 
 
 
-## Requirements**Production-ready proxy server with authentication and encryption**
+## RequirementsMulti-protocol proxy server with authentication and encryption support.
 
 
 
@@ -14,7 +14,7 @@ Multi-protocol proxy server with authentication and encryption support.
 
 - Root access
 
-- Open ports: 1080, 3128, 8443, 11080---**Production-ready proxy server with authentication and encryption****Production-ready proxy server with authentication, encryption, and multiple protocols**
+- Open ports: 1080, 3128, 8443, 11080## Requirements**Production-ready proxy server with authentication and encryption**
 
 
 
@@ -22,61 +22,141 @@ Multi-protocol proxy server with authentication and encryption support.
 
 
 
-Clone the repository:## 🚀 Quick Start
+```bash- Ubuntu 22.04 LTS
+
+git clone https://github.com/genome96/cusproxy.git
+
+cd cusproxy- Root access
+
+sudo bash bootstrap.sh
+
+```- Open ports: 1080, 3128, 8443, 11080---**Production-ready proxy server with authentication and encryption****Production-ready proxy server with authentication, encryption, and multiple protocols**
+
+
+
+## Usage
+
+
+
+### HTTPS (Encrypted - Recommended)## Installation
+
+
+
+```
+
+Host: your-server.com
+
+Port: 8443Clone the repository:## 🚀 Quick Start
+
+Username: admin
+
+Password: your-password```
 
 ```
 
 git clone https://github.com/genome96/cusproxy.git
 
+### SOCKS5 (Fast)
+
 cd cusproxy
 
-```### Available ProxiesServer: `darkanon.store` (34.214.132.38)**Server:** darkanon.store (34.214.132.38)  
-
-
-
-Run the installer:
-
 ```
 
-sudo bash bootstrap.sh**1. HTTPS Proxy (Encrypted + Authenticated) ⭐ RECOMMENDED****Platform:** Ubuntu 22.04 LTS  
+Host: your-server.com```### Available ProxiesServer: `darkanon.store` (34.214.132.38)**Server:** darkanon.store (34.214.132.38)  
 
-```
+Port: 1080
+
+Username: socksadmin
+
+Password: your-password
+
+```Run the installer:
+
+
+
+### HTTP```
+
+
+
+```sudo bash bootstrap.sh**1. HTTPS Proxy (Encrypted + Authenticated) ⭐ RECOMMENDED****Platform:** Ubuntu 22.04 LTS  
+
+Host: your-server.com
+
+Port: 3128```
+
+Username: admin
+
+Password: your-password```
 
 ```
 
 This will install and configure:
 
+## Configuration
+
 - Dante (SOCKS5 proxy)Host:     your-server.com---**Location:** AWS Oregon  
+
+### Change Passwords
 
 - Squid (HTTP/HTTPS proxy)
 
-- stunnel (TLS encryption)Port:     8443
+SOCKS5:
 
-- Shadowsocks (encrypted proxy)
+```bash- stunnel (TLS encryption)Port:     8443
 
-Protocol: HTTPS
+sudo passwd socksadmin
 
-## Usage
+```- Shadowsocks (encrypted proxy)
 
-Username: your-username
 
-### HTTPS Proxy (Recommended - Encrypted)
 
-```Password: your-password## 🚀 Quick Start---
+HTTP/HTTPS:Protocol: HTTPS
 
-Host: your-server.com
+```bash
 
-Port: 8443```
+sudo htpasswd -c /etc/squid/passwords admin## Usage
 
-Username: admin
+sudo systemctl restart vpk-squid vpk-stunnel
 
-Password: your-password- ✅ Full TLS encryption
+```Username: your-username
+
+
+
+### Manage Services### HTTPS Proxy (Recommended - Encrypted)
+
+
+
+```bash```Password: your-password## 🚀 Quick Start---
+
+sudo systemctl status vpk-dante
+
+sudo systemctl restart vpk-danteHost: your-server.com
+
+sudo journalctl -u vpk-dante -n 50
+
+```Port: 8443```
+
+
+
+## TestingUsername: admin
+
+
+
+```bashPassword: your-password- ✅ Full TLS encryption
+
+curl -x socks5://user:pass@server:1080 http://ifconfig.me/ip
+
+curl -x https://user:pass@server:8443 -k http://ifconfig.me/ip```
 
 ```
 
 - ✅ Authentication required
 
+## License
+
 ### SOCKS5 Proxy (Fast - No Encryption)
+
+MIT
 
 ```- ✅ Best for production use### Available Proxies (Ready to Use)## ✨ Features
 
