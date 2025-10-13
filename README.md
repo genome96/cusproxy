@@ -1,132 +1,262 @@
-# CusProxy - Multi-Protocol Proxy Server# CusProxy - Multi-Protocol Proxy Server# 🔐 CusProxy - Multi-Protocol Proxy Server
+# CusProxy# CusProxy - Multi-Protocol Proxy Server# CusProxy - Multi-Protocol Proxy Server# 🔐 CusProxy - Multi-Protocol Proxy Server
 
 
 
-**Production-ready proxy server with authentication and encryption**
+Multi-protocol proxy server with authentication and encryption support.
 
 
 
----**Production-ready proxy server with authentication and encryption****Production-ready proxy server with authentication, encryption, and multiple protocols**
+## Requirements**Production-ready proxy server with authentication and encryption**
 
 
 
-## 🚀 Quick Start
+- Ubuntu 22.04 LTS
+
+- Root access
+
+- Open ports: 1080, 3128, 8443, 11080---**Production-ready proxy server with authentication and encryption****Production-ready proxy server with authentication, encryption, and multiple protocols**
 
 
 
-### Available ProxiesServer: `darkanon.store` (34.214.132.38)**Server:** darkanon.store (34.214.132.38)  
+## Installation
 
 
 
-**1. HTTPS Proxy (Encrypted + Authenticated) ⭐ RECOMMENDED****Platform:** Ubuntu 22.04 LTS  
+Clone the repository:## 🚀 Quick Start
 
 ```
 
-Host:     your-server.com---**Location:** AWS Oregon  
+git clone https://github.com/genome96/cusproxy.git
 
-Port:     8443
+cd cusproxy
+
+```### Available ProxiesServer: `darkanon.store` (34.214.132.38)**Server:** darkanon.store (34.214.132.38)  
+
+
+
+Run the installer:
+
+```
+
+sudo bash bootstrap.sh**1. HTTPS Proxy (Encrypted + Authenticated) ⭐ RECOMMENDED****Platform:** Ubuntu 22.04 LTS  
+
+```
+
+```
+
+This will install and configure:
+
+- Dante (SOCKS5 proxy)Host:     your-server.com---**Location:** AWS Oregon  
+
+- Squid (HTTP/HTTPS proxy)
+
+- stunnel (TLS encryption)Port:     8443
+
+- Shadowsocks (encrypted proxy)
 
 Protocol: HTTPS
 
-Username: your-username
-
-Password: your-password## 🚀 Quick Start---
-
-```
-
-- ✅ Full TLS encryption
-
-- ✅ Authentication required
-
-- ✅ Best for production use### Available Proxies (Ready to Use)## ✨ Features
-
-
-
-**2. SOCKS5 Proxy (Authenticated, No Encryption)**
-
-```
-
-Host:     your-server.com**1. HTTPS Proxy (Encrypted + Authenticated) ⭐ RECOMMENDED**- ✅ **4 Proxy Protocols**: SOCKS5, HTTP, HTTPS+TLS, Shadowsocks
-
-Port:     1080
-
-Protocol: SOCKS5```- ✅ **Authentication**: Username/password on all protocols
+## Usage
 
 Username: your-username
 
-Password: your-passwordHost:     darkanon.store- ✅ **Encryption**: TLS 1.2+ (HTTPS), ChaCha20 (Shadowsocks)
+### HTTPS Proxy (Recommended - Encrypted)
 
-```
+```Password: your-password## 🚀 Quick Start---
 
-- ✅ Authentication requiredPort:     8443- ✅ **Auto-Start**: Systemd services (survives reboots)
+Host: your-server.com
 
-- ❌ No encryption (use on trusted networks only)
+Port: 8443```
 
-- ✅ Faster than HTTPSProtocol: HTTPS- ✅ **MoreLogin Compatible**: Direct copy-paste configuration
-
-
-
-**3. HTTP Proxy (Authenticated)**Username: admin- ✅ **Security Hardened**: No unauthenticated access
-
-```
-
-Host:     your-server.comPassword: SecurePass123!
-
-Port:     3128
-
-Protocol: HTTP```---
-
-Username: your-username
+Username: admin
 
 Password: your-password- ✅ Full TLS encryption
 
 ```
 
-- ✅ Authentication required## 🚀 Available Protocols
+- ✅ Authentication required
 
-**4. Shadowsocks (Encrypted)**
+### SOCKS5 Proxy (Fast - No Encryption)
 
-```- ✅ Best for production use
+```- ✅ Best for production use### Available Proxies (Ready to Use)## ✨ Features
 
-Host:     your-server.com
+Host: your-server.com
 
-Port:     11080### 1. SOCKS5 with Authentication (Port 1080) ⭐
+Port: 1080
 
-Password: your-password
+Username: socksadmin
 
-Method:   chacha20-ietf-poly1305**2. SOCKS5 Proxy (Authenticated, No Encryption)**```
+Password: your-password**2. SOCKS5 Proxy (Authenticated, No Encryption)**
 
 ```
 
-- Requires Shadowsocks client```Protocol:  SOCKS5
+```
+
+### HTTP Proxy
+
+```Host:     your-server.com**1. HTTPS Proxy (Encrypted + Authenticated) ⭐ RECOMMENDED**- ✅ **4 Proxy Protocols**: SOCKS5, HTTP, HTTPS+TLS, Shadowsocks
+
+Host: your-server.com
+
+Port: 3128Port:     1080
+
+Username: admin
+
+Password: your-passwordProtocol: SOCKS5```- ✅ **Authentication**: Username/password on all protocols
+
+```
+
+Username: your-username
+
+### Shadowsocks (Encrypted)
+
+```Password: your-passwordHost:     darkanon.store- ✅ **Encryption**: TLS 1.2+ (HTTPS), ChaCha20 (Shadowsocks)
+
+Host: your-server.com
+
+Port: 11080```
+
+Password: your-password
+
+Method: chacha20-ietf-poly1305- ✅ Authentication requiredPort:     8443- ✅ **Auto-Start**: Systemd services (survives reboots)
+
+```
+
+- ❌ No encryption (use on trusted networks only)
+
+## Configuration
+
+- ✅ Faster than HTTPSProtocol: HTTPS- ✅ **MoreLogin Compatible**: Direct copy-paste configuration
+
+Change SOCKS5 password:
+
+```
+
+sudo passwd socksadmin
+
+```**3. HTTP Proxy (Authenticated)**Username: admin- ✅ **Security Hardened**: No unauthenticated access
 
 
 
----Host:     darkanon.storeHost:      darkanon.store
+Change HTTP/HTTPS password:```
+
+```
+
+sudo htpasswd -c /etc/squid/passwords adminHost:     your-server.comPassword: SecurePass123!
+
+sudo systemctl restart vpk-squid vpk-stunnel
+
+```Port:     3128
 
 
 
-## 📋 ComparisonPort:     1080Port:      1080
+Change Shadowsocks password:Protocol: HTTP```---
+
+```
+
+sudo nano /etc/shadowsocks-libev/config.jsonUsername: your-username
+
+sudo systemctl restart vpk-shadowsocks
+
+```Password: your-password- ✅ Full TLS encryption
 
 
+
+## Service Management```
+
+
+
+Check service status:- ✅ Authentication required## 🚀 Available Protocols
+
+```
+
+sudo systemctl status vpk-dante**4. Shadowsocks (Encrypted)**
+
+sudo systemctl status vpk-squid
+
+sudo systemctl status vpk-stunnel```- ✅ Best for production use
+
+sudo systemctl status vpk-shadowsocks
+
+```Host:     your-server.com
+
+
+
+Restart services:Port:     11080### 1. SOCKS5 with Authentication (Port 1080) ⭐
+
+```
+
+sudo systemctl restart vpk-dantePassword: your-password
+
+sudo systemctl restart vpk-squid
+
+sudo systemctl restart vpk-stunnelMethod:   chacha20-ietf-poly1305**2. SOCKS5 Proxy (Authenticated, No Encryption)**```
+
+sudo systemctl restart vpk-shadowsocks
+
+``````
+
+
+
+View logs:- Requires Shadowsocks client```Protocol:  SOCKS5
+
+```
+
+sudo journalctl -u vpk-dante -n 50
+
+sudo journalctl -u vpk-squid -n 50
+
+```---Host:     darkanon.storeHost:      darkanon.store
+
+
+
+## Testing
+
+
+
+Test SOCKS5:## 📋 ComparisonPort:     1080Port:      1080
+
+```
+
+curl -x socks5://username:password@your-server.com:1080 http://ifconfig.me/ip
+
+```
 
 | Port | Protocol | Auth | Encryption | Best For |Protocol: SOCKS5Username:  socksadmin
 
-|------|----------|------|------------|----------|
+Test HTTPS:
 
-| 8443 | HTTPS    | ✅   | ✅ TLS     | Production, public WiFi |Username: socksadminPassword:  SecurePass123!
+```|------|----------|------|------------|----------|
 
-| 1080 | SOCKS5   | ✅   | ❌         | Testing, speed |
+curl -x https://username:password@your-server.com:8443 -k http://ifconfig.me/ip
 
-| 3128 | HTTP     | ✅   | ❌         | Basic proxy |Password: SecurePass123!```
+```| 8443 | HTTPS    | ✅   | ✅ TLS     | Production, public WiFi |Username: socksadminPassword:  SecurePass123!
 
-| 11080| Shadowsocks | ✅ | ✅ ChaCha20 | Max security |
+
+
+## Security Notes| 1080 | SOCKS5   | ✅   | ❌         | Testing, speed |
+
+
+
+- Port 8443 (HTTPS): Encrypted with TLS - safe for public networks| 3128 | HTTP     | ✅   | ❌         | Basic proxy |Password: SecurePass123!```
+
+- Port 1080 (SOCKS5): No encryption - use only on trusted networks
+
+- Port 3128 (HTTP): No encryption - basic proxy| 11080| Shadowsocks | ✅ | ✅ ChaCha20 | Max security |
+
+- Port 11080 (Shadowsocks): Encrypted with ChaCha20
 
 ```- ✅ Authentication: Username/Password
 
+Always use port 8443 for production and public WiFi.
+
 ---
 
+## License
+
 - ✅ Authentication required- ❌ Encryption: None (plaintext)
+
+MIT License
 
 ## ⚙️ Installation (Fresh Server)
 
