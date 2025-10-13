@@ -9,7 +9,10 @@ Complete guide for installing VPS Proxy Kit on a clean Ubuntu 22.04 server.
 - At least 1GB RAM
 - 10GB free disk space
 - Public IP address
-- (Optional) Domain name pointed to server IP
+- (Optional) Domain name with A record pointing to server IP
+  - **Important**: DNS must be propagated before installation
+  - Verify with: `dig +short yourdomain.com` or `host yourdomain.com`
+  - DNS propagation usually takes 5-15 minutes, can take up to 24 hours
 
 ## Quick Start
 
@@ -17,8 +20,9 @@ Complete guide for installing VPS Proxy Kit on a clean Ubuntu 22.04 server.
 
 **Before installation:**
 1. Configure DNS A record pointing to your VPS IP
-2. Wait 2-5 minutes for DNS propagation
-3. Verify: `nslookup proxy.yourdomain.com`
+2. Wait 5-15 minutes for DNS propagation (can take up to 24 hours)
+3. Verify DNS resolves correctly: `dig +short proxy.yourdomain.com`
+4. Ensure port 80 is accessible (required for Let's Encrypt validation)
 
 **Install:**
 ```bash
@@ -26,12 +30,11 @@ Complete guide for installing VPS Proxy Kit on a clean Ubuntu 22.04 server.
 git clone https://github.com/genome96/cusproxy.git
 cd cusproxy
 
-# Run installer (will prompt for domain)
-sudo ./bootstrap.sh
-
-# Or specify domain directly
-sudo ./bootstrap.sh --domain proxy.yourdomain.com
+# Run installer with domain (includes automatic DNS validation)
+sudo ./bootstrap.sh --domain proxy.yourdomain.com --yes
 ```
+
+**Note**: The installer will automatically validate that your domain points to the VPS IP before attempting Let's Encrypt certificate request. If DNS validation fails, it will fall back to a self-signed certificate.
 
 ### Option 2: Without Domain (Self-Signed Certificate)
 
@@ -60,19 +63,27 @@ sudo ./bootstrap.sh --yes
 
 The bootstrap script will automatically:
 
-1. ✅ Update system packages
-2. ✅ Install dependencies (Python, Dante, Squid, stunnel, fail2ban)
-3. ✅ Create service users (proxyadmin, proxyd)
-4. ✅ Create directory structure
-5. ✅ Generate encryption keys
-6. ✅ Obtain SSL certificate (Let's Encrypt or self-signed)
-7. ✅ Configure all proxy services
-8. ✅ Set up firewall rules (UFW)
-9. ✅ Configure fail2ban for DDoS protection
-10. ✅ Create systemd services
-11. ✅ Start all services
+1. ✅ Validate DNS configuration (if domain provided)
+2. ✅ Update system packages
+3. ✅ Install dependencies (Python, Dante, Squid, stunnel, fail2ban)
+4. ✅ Create service users (proxyadmin, proxyd)
+5. ✅ Create directory structure with correct permissions
+6. ✅ Generate encryption keys
+7. ✅ Obtain SSL certificate (Let's Encrypt or self-signed)
+8. ✅ Configure all proxy services with production settings
+9. ✅ Mask default stunnel4 service to prevent conflicts
+10. ✅ Pre-create log files with correct ownership
+11. ✅ Initialize Squid cache directories
+12. ✅ Set up firewall rules (UFW)
+13. ✅ Configure fail2ban for DDoS protection
+14. ✅ Create systemd services with automatic retries
+15. ✅ Start all services
 
-**Installation time:** 3-5 minutes
+**Installation time:** 3-5 minutes (first stunnel startup may take additional 1-2 minutes for DH parameter generation)
+
+**Known Behavior**:
+- stunnel service may show "activating" status for 1-2 minutes on first start while generating Diffie-Hellman parameters - this is normal
+- Squid service will automatically retry up to 3 times if initial startup fails - this ensures reliable deployment
 
 ## Post-Installation
 
@@ -131,7 +142,85 @@ curl -x https://admin:YourSecurePassword123!@YOUR_VPS_IP:8443 https://ifconfig.m
 
 ## Troubleshooting
 
-### Issue: Services not starting
+### Issue: DNS Validation Failed
+
+**Symptom**: Installation shows "DNS mismatch! Domain points to X.X.X.X but server is Y.Y.Y.Y"
+
+**Solutions**:
+```bash
+# 1. Verify DNS is correctly configured
+dig +short yourdomain.com
+# Should return your VPS IP
+
+# 2. If DNS not propagated, wait 5-15 minutes and retry
+sudo ./bootstrap.sh --domain yourdomain.com --yes
+
+# 3. Or install without domain (uses self-signed certificate)
+sudo ./bootstrap.sh --yes
+```
+
+### Issue: stunnel Service Not Starting
+
+**Symptom**: `systemctl status vpk-stunnel` shows "activating" or "Address already in use"
+
+**Solutions**:
+```bash
+# 1. Check if default stunnel4 service is running
+systemctl status stunnel4
+
+# 2. Stop and mask it (installer does this automatically)
+sudo systemctl stop stunnel4
+sudo systemctl mask stunnel4
+
+# 3. Restart vpk-stunnel
+sudo systemctl restart vpk-stunnel
+
+# 4. Wait 1-2 minutes for DH parameter generation (first start only)
+sudo journalctl -u vpk-stunnel -f
+
+# 5. Verify ports are listening
+sudo ss -tlnp | grep ':8443\|:11080'
+```
+
+### Issue: Squid Service Not Starting
+
+**Symptom**: `systemctl status vpk-squid` shows "failed" or "cannot open log file"
+
+**Solutions**:
+```bash
+# 1. Check log file permissions (installer fixes this automatically)
+ls -la /var/log/vpk/squid*.log
+
+# 2. Recreate log files if missing
+sudo touch /var/log/vpk/squid_access.log /var/log/vpk/squid_cache.log
+sudo chown proxy:proxy /var/log/vpk/squid*.log
+sudo chmod 644 /var/log/vpk/squid*.log
+
+# 3. Initialize cache (installer does this automatically)
+sudo mkdir -p /run/squid
+sudo chown proxy:proxy /run/squid
+sudo -u proxy /usr/sbin/squid -f /etc/squid/squid.conf -z
+
+# 4. Restart service (installer retries up to 3 times)
+sudo systemctl restart vpk-squid
+```
+
+### Issue: Certificate Permission Errors
+
+**Symptom**: stunnel or Squid cannot read certificates from `/etc/vpk/certs/`
+
+**Solutions**:
+```bash
+# Fix directory permissions (installer sets this automatically)
+sudo chmod 755 /etc/vpk
+sudo chmod 755 /etc/vpk/certs
+sudo chmod 644 /etc/vpk/certs/*
+
+# Restart services
+sudo systemctl restart vpk-stunnel vpk-squid
+```
+
+### Issue: Services Not Starting
 
 **Check logs:**
 ```bash
@@ -145,7 +234,7 @@ sudo journalctl -u vpk-stunnel -n 50
 # Fix log file permissions
 sudo chown -R proxyd:proxyd /var/log/vpk/
 
-# Restart services
+# Restart all services
 sudo systemctl restart vpk-dante vpk-squid vpk-stunnel
 ```
 

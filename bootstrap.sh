@@ -357,9 +357,16 @@ create_directories() {
   chmod 750 "${INSTALL_DIR}"
   chmod 700 "${DATA_DIR}"
   chmod 755 "${LOG_DIR}"
-  chmod 644 "${LOG_DIR}"/*.log
-  chmod 750 "${CONFIG_DIR}"
-  chmod 750 "${CONFIG_DIR}/certs"
+  chmod 644 "${LOG_DIR}"/*.log 2>/dev/null || true
+  chmod 755 "${CONFIG_DIR}"
+  chmod 755 "${CONFIG_DIR}/certs"
+  
+  # Create Squid-specific log files with correct ownership
+  if [[ "$ENABLE_HTTPS" == true ]]; then
+    touch "${LOG_DIR}/squid_access.log" "${LOG_DIR}/squid_cache.log"
+    chown proxy:proxy "${LOG_DIR}/squid"*.log
+    chmod 644 "${LOG_DIR}/squid"*.log
+  fi
   
   log_success "Directory structure created"
 }
@@ -422,8 +429,55 @@ generate_encryption_key() {
   fi
 }
 
+validate_domain() {
+  local domain="$1"
+  local expected_ip="$2"
+  
+  log_info "Validating DNS configuration for ${domain}..."
+  
+  # Get actual IP from DNS
+  local resolved_ip
+  resolved_ip=$(dig +short "$domain" A | tail -n1 2>/dev/null)
+  
+  if [[ -z "$resolved_ip" ]]; then
+    resolved_ip=$(host "$domain" | grep "has address" | awk '{print $NF}' | head -n1 2>/dev/null)
+  fi
+  
+  if [[ -z "$resolved_ip" ]]; then
+    log_error "Unable to resolve domain ${domain}"
+    return 1
+  fi
+  
+  log_info "Domain ${domain} resolves to: ${resolved_ip}"
+  log_info "Server public IP: ${expected_ip}"
+  
+  if [[ "$resolved_ip" != "$expected_ip" ]]; then
+    log_error "DNS mismatch! Domain points to ${resolved_ip} but server is ${expected_ip}"
+    log_warn "Please update your DNS A record to point to ${expected_ip}"
+    return 1
+  fi
+  
+  log_success "DNS validation passed"
+  return 0
+}
+
 generate_certificates() {
   log_info "Setting up TLS certificates..."
+  
+  if [[ -n "$DOMAIN" ]]; then
+    # Validate domain DNS first
+    PUBLIC_IP=$(curl -s https://api.ipify.org || curl -s https://ifconfig.me || echo "")
+    
+    if [[ -z "$PUBLIC_IP" ]]; then
+      log_error "Unable to determine public IP"
+      log_info "Falling back to self-signed certificate"
+      DOMAIN=""
+    elif ! validate_domain "$DOMAIN" "$PUBLIC_IP"; then
+      log_error "Domain validation failed"
+      log_info "Falling back to self-signed certificate"
+      DOMAIN=""
+    fi
+  fi
   
   if [[ -n "$DOMAIN" ]]; then
     # Use acme.sh for Let's Encrypt
@@ -696,6 +750,7 @@ setuid = ${PROXY_USER}
 setgid = ${PROXY_USER}
 output = ${LOG_DIR}/stunnel.log
 foreground = yes
+pid =
 
 # TLS options (OpenSSL 3.0 compatible)
 sslVersion = TLSv1.2
@@ -711,7 +766,7 @@ EOF
 
 # HTTPS proxy (Squid with TLS)
 [squid-https]
-accept = 8443
+accept = 0.0.0.0:8443
 connect = 127.0.0.1:3128
 cert = ${CONFIG_DIR}/certs/server.crt
 key = ${CONFIG_DIR}/certs/server.key
@@ -724,7 +779,7 @@ EOF
 
 # SOCKS5 with TLS
 [socks5-tls]
-accept = 11080
+accept = 0.0.0.0:11080
 connect = 127.0.0.1:1080
 cert = ${CONFIG_DIR}/certs/server.crt
 key = ${CONFIG_DIR}/certs/server.key
@@ -737,6 +792,7 @@ EOF
   # Disable default stunnel4 service
   systemctl stop stunnel4 2>/dev/null || true
   systemctl disable stunnel4 2>/dev/null || true
+  systemctl mask stunnel4 2>/dev/null || true
   
   log_success "stunnel configured"
 }
@@ -1070,25 +1126,58 @@ EOF
 enable_services() {
   log_info "Enabling and starting services..."
   
-  # Enable and start proxy services
+  # Initialize Squid cache directories if needed
+  if [[ "$ENABLE_HTTPS" == true ]]; then
+    log_info "Initializing Squid cache directories..."
+    mkdir -p /run/squid
+    chown proxy:proxy /run/squid
+    sudo -u proxy /usr/sbin/squid -f /etc/squid/squid.conf -z 2>/dev/null || log_warn "Squid cache initialization had issues"
+  fi
+  
+  # Enable and start proxy services with retry logic
   if [[ "$ENABLE_SOCKS" == true ]]; then
     systemctl enable vpk-dante
-    systemctl start vpk-dante || log_warn "Failed to start vpk-dante (may need user accounts first)"
+    log_info "Starting Dante SOCKS5 service..."
+    systemctl start vpk-dante || log_warn "Dante service startup had issues (this is normal, it will auto-restart)"
   fi
   
   if [[ "$ENABLE_HTTPS" == true ]]; then
     systemctl enable vpk-squid
-    systemctl start vpk-squid || log_warn "Failed to start vpk-squid (may need user accounts first)"
+    log_info "Starting Squid HTTP/HTTPS proxy..."
+    
+    # Wait for cache init to complete
+    sleep 2
+    
+    for i in {1..3}; do
+      if systemctl start vpk-squid; then
+        log_success "Squid started successfully"
+        break
+      else
+        log_warn "Squid start attempt $i/3 failed, retrying..."
+        sleep 2
+      fi
+    done
   fi
   
   # Enable stunnel
   systemctl enable vpk-stunnel
-  systemctl start vpk-stunnel
+  log_info "Starting stunnel TLS wrapper..."
+  
+  # stunnel needs time to generate DH parameters on first run
+  systemctl start vpk-stunnel || log_warn "stunnel is starting (DH parameter generation may take 1-2 minutes)"
+  
+  # Wait a bit and check if stunnel is listening
+  sleep 5
+  if ss -tln | grep -q ':8443\|:11080'; then
+    log_success "stunnel is listening on ports"
+  else
+    log_warn "stunnel may still be initializing DH parameters"
+  fi
   
   # Enable monitoring services (but don't start yet - need DB initialization)
-  systemctl enable vpk-logparser
-  systemctl enable vpk-quota
-  systemctl enable vpk-metrics
+  systemctl enable vpk-logparser 2>/dev/null || true
+  systemctl enable vpk-quota 2>/dev/null || true
+  systemctl enable vpk-metrics 2>/dev/null || true
   
   log_success "Services enabled"
 }

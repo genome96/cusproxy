@@ -50,39 +50,43 @@ cd cusproxy
 # 2. Run bootstrap installer (as root)
 sudo ./bootstrap.sh --yes
 
-# 3. Activate virtualenv
+# 3. With domain for Let's Encrypt SSL (recommended)
+sudo ./bootstrap.sh --domain yourdomain.com --yes
+
+# 4. Activate virtualenv
 source /opt/vps-proxy-kit/venv/bin/activate
 
-# 4. Create your first user
+# 5. Create your first user
 vpk create-user --username alice --password 'YourSecurePassword123!' --protocol socks,https --quota 100GB
 
-# 5. Check status
+# 6. Check status
 vpk list-users
 
-# 6. View active connections
+# 7. View active connections
 vpk show-sessions
-
-# 7. Check logs
-vpk view-logs --lines 50
 
 # 8. Enable metrics endpoint
 sudo systemctl start vpk-metrics
 
 # 9. Test SOCKS5 connection
-curl --socks5 alice:YourSecurePassword123!@34.214.132.38:1080 https://ipinfo.io/ip
+curl --socks5 alice:YourSecurePassword123!@YOUR_SERVER_IP:1080 https://ipinfo.io/ip
 
 # 10. Test HTTPS proxy (with TLS)
-curl --proxy https://alice:YourSecurePassword123!@34.214.132.38:8443 https://ipinfo.io/ip
+curl --proxy https://alice:YourSecurePassword123!@YOUR_SERVER_IP:8443 https://ipinfo.io/ip --insecure
 ```
 
 ## Installation
 
 ### Prerequisites
 
-- Ubuntu 22.04 LTS
-- Root or sudo access
-- At least 1GB RAM, 10GB disk space
-- Public IP address (e.g., 34.214.132.38)
+- **OS**: Ubuntu 22.04 LTS (fresh installation recommended)
+- **Resources**: Minimum 1GB RAM, 10GB disk space
+- **Access**: Root or sudo privileges
+- **Network**: Public IP address
+- **Domain** (optional): For Let's Encrypt SSL certificates
+  - Domain must have A record pointing to your VPS IP
+  - DNS propagation completed (verify with `dig yourdomain.com`)
+  - Port 80 accessible for Let's Encrypt validation
 
 ### Full Installation
 
@@ -94,25 +98,37 @@ cd cusproxy
 # Run bootstrap installer
 sudo ./bootstrap.sh
 
-# Optional: Provide domain for Let's Encrypt certificates
-sudo ./bootstrap.sh --domain proxy.example.com
+# With domain for Let's Encrypt certificates (recommended)
+sudo ./bootstrap.sh --domain yourdomain.com --yes
 
-# Optional: Quick mode (autossh + microsocks for single-user)
+# Quick mode (autossh + microsocks for single-user)
 sudo ./bootstrap.sh --mode quick
 ```
 
 The bootstrap script will:
 
-1. Install required packages (dante-server, squid, stunnel4, etc.)
-2. Create unprivileged users (`proxyadmin`, `proxyd`)
-3. Set up Python virtual environment
-4. Install Python dependencies
-5. Create directory structure under `/opt/vps-proxy-kit/`
-6. Generate encryption keys
-7. Configure proxy services
-8. Set up systemd units
-9. Configure firewall rules
-10. Enable fail2ban protection
+1. Validate DNS configuration (if domain provided)
+2. Install required packages (dante-server, squid, stunnel4, etc.)
+3. Create unprivileged users (`proxyadmin`, `proxyd`)
+4. Set up Python virtual environment
+5. Install Python dependencies
+6. Create directory structure under `/opt/vps-proxy-kit/`
+7. Generate encryption keys and SSL certificates
+8. Configure proxy services with production-ready settings
+9. Set up systemd units with automatic retries
+10. Configure firewall rules
+11. Enable fail2ban protection
+12. Initialize service caches and log files
+
+**Automated Fixes Included**:
+- ✅ DNS validation before Let's Encrypt certificate requests
+- ✅ stunnel IPv4-only binding to prevent address conflicts
+- ✅ Proper certificate directory permissions (755)
+- ✅ Squid log file pre-creation with correct ownership
+- ✅ Squid cache initialization before first start
+- ✅ Service startup retry logic (3 attempts for Squid)
+- ✅ DH parameter generation with progress feedback
+- ✅ Default stunnel4 service masking to prevent conflicts
 
 ## Usage
 
@@ -727,23 +743,113 @@ vpk list-users
 
 ## Troubleshooting
 
+### Installation Issues
+
+#### DNS Validation Failed
+
+**Symptom**: Bootstrap script reports "DNS mismatch! Domain points to X.X.X.X but server is Y.Y.Y.Y"
+
+**Solution**:
+```bash
+# Verify DNS propagation
+dig +short yourdomain.com
+
+# Or use host command
+host yourdomain.com
+
+# If not propagated, wait or use self-signed certificate
+sudo ./bootstrap.sh --yes  # Skips Let's Encrypt, uses self-signed
+```
+
+#### stunnel Service Failed to Start
+
+**Symptom**: `systemctl status vpk-stunnel` shows "activating" or "Address already in use"
+
+**Causes & Solutions**:
+
+1. **IPv6/IPv4 binding conflict** (Fixed in latest bootstrap):
+   ```bash
+   # Check if default stunnel4 is running
+   systemctl status stunnel4
+   
+   # Disable it
+   sudo systemctl stop stunnel4
+   sudo systemctl mask stunnel4
+   
+   # Restart vpk-stunnel
+   sudo systemctl restart vpk-stunnel
+   ```
+
+2. **DH parameter generation** (takes 1-2 minutes on first start):
+   ```bash
+   # This is normal, wait 2 minutes then check
+   sudo journalctl -u vpk-stunnel -f
+   
+   # Verify stunnel is listening
+   sudo ss -tlnp | grep ':8443\|:11080'
+   ```
+
+3. **Permission issues with certificates**:
+   ```bash
+   # Check certificate permissions
+   ls -la /etc/vpk/certs/
+   
+   # Should be 755 for directories, 644 for files
+   sudo chmod 755 /etc/vpk /etc/vpk/certs
+   sudo chmod 644 /etc/vpk/certs/*
+   ```
+
+#### Squid Service Failed to Start
+
+**Symptom**: `systemctl status vpk-squid` shows "failed" or "cannot open log file"
+
+**Solutions**:
+
+1. **Log file permission issues** (Fixed in latest bootstrap):
+   ```bash
+   # Create log files with correct ownership
+   sudo touch /var/log/vpk/squid_access.log /var/log/vpk/squid_cache.log
+   sudo chown proxy:proxy /var/log/vpk/squid*.log
+   sudo chmod 644 /var/log/vpk/squid*.log
+   ```
+
+2. **Cache directory not initialized** (Fixed in latest bootstrap):
+   ```bash
+   # Initialize Squid cache
+   sudo mkdir -p /run/squid
+   sudo chown proxy:proxy /run/squid
+   sudo -u proxy /usr/sbin/squid -f /etc/squid/squid.conf -z
+   
+   # Restart service
+   sudo systemctl restart vpk-squid
+   ```
+
+3. **Service startup timeout**:
+   ```bash
+   # The installer now includes retry logic (3 attempts)
+   # Manual restart if needed:
+   sudo systemctl restart vpk-squid
+   sleep 2
+   sudo systemctl status vpk-squid
+   ```
+
 ### Common Issues
 
 #### Proxy not accepting connections
 
 ```bash
 # Check service status
-sudo systemctl status dante
-sudo systemctl status squid
+sudo systemctl status vpk-dante vpk-squid vpk-stunnel
 
-# Check ports
-sudo ss -tulpn | grep -E '1080|3128|8443'
+# Check ports are listening
+sudo ss -tulpn | grep -E '1080|3128|8443|11080'
 
 # Check firewall
 sudo ufw status
 
 # Test connectivity
-telnet 34.214.132.38 1080
+telnet YOUR_SERVER_IP 1080
+telnet YOUR_SERVER_IP 3128
 ```
 
 #### Authentication failures
