@@ -246,18 +246,34 @@ create_users() {
   
   # Create proxyadmin user
   if ! id -u "${SERVICE_USER}" >/dev/null 2>&1; then
-    useradd --system --uid ${SERVICE_UID} --home-dir "${INSTALL_DIR}" --shell /bin/bash "${SERVICE_USER}"
-    log_success "Created user: ${SERVICE_USER}"
+    # Try with specified UID, fall back to auto-assignment if UID is taken
+    if useradd --system --uid ${SERVICE_UID} --home-dir "${INSTALL_DIR}" --shell /bin/bash "${SERVICE_USER}" 2>/dev/null; then
+      log_success "Created user: ${SERVICE_USER} with UID ${SERVICE_UID}"
+    else
+      log_warn "UID ${SERVICE_UID} already taken, using auto-assigned UID"
+      useradd --system --home-dir "${INSTALL_DIR}" --shell /bin/bash "${SERVICE_USER}"
+      SERVICE_UID=$(id -u "${SERVICE_USER}")
+      log_success "Created user: ${SERVICE_USER} with UID ${SERVICE_UID}"
+    fi
   else
     log_info "User ${SERVICE_USER} already exists"
+    SERVICE_UID=$(id -u "${SERVICE_USER}")
   fi
   
   # Create proxyd user (no login)
   if ! id -u "${PROXY_USER}" >/dev/null 2>&1; then
-    useradd --system --uid ${PROXY_UID} --no-create-home --shell /usr/sbin/nologin "${PROXY_USER}"
-    log_success "Created user: ${PROXY_USER}"
+    # Try with specified UID, fall back to auto-assignment if UID is taken
+    if useradd --system --uid ${PROXY_UID} --no-create-home --shell /usr/sbin/nologin "${PROXY_USER}" 2>/dev/null; then
+      log_success "Created user: ${PROXY_USER} with UID ${PROXY_UID}"
+    else
+      log_warn "UID ${PROXY_UID} already taken, using auto-assigned UID"
+      useradd --system --no-create-home --shell /usr/sbin/nologin "${PROXY_USER}"
+      PROXY_UID=$(id -u "${PROXY_USER}")
+      log_success "Created user: ${PROXY_USER} with UID ${PROXY_UID}"
+    fi
   else
     log_info "User ${PROXY_USER} already exists"
+    PROXY_UID=$(id -u "${PROXY_USER}")
   fi
 }
 
