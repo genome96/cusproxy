@@ -413,6 +413,9 @@ configure_dante() {
   
   log_info "Configuring Dante SOCKS5 server..."
   
+  # Create Dante config directory if it doesn't exist
+  mkdir -p /etc/dante
+  
   # Detect network interface
   IFACE=$(ip route | grep default | awk '{print $5}' | head -n1)
   
