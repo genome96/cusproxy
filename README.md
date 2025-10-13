@@ -1,14 +1,10 @@
-# CusProxy# CusProxy# CusProxy# CusProxy - Multi-Protocol Proxy Server# CusProxy - Multi-Protocol Proxy Server# 🔐 CusProxy - Multi-Protocol Proxy Server
-
-
+### 🚀CusProxy - Multi-Protocol Proxy Server# 🔐 CusProxy - Multi-Protocol Proxy Server
 
 ## Requirements
 
 - Ubuntu VPS (22.04 LTS recommended)
 
-- Root or sudo accessMulti-protocol proxy server with authentication.
-
-
+- Root or sudo access
 
 ## Installation
 
@@ -34,13 +30,9 @@ sudo bash bootstrap.sh
 
 - Shadowsocks: update `shadowsocks-config.json` with your desired password and restart the `vpk-shadowsocks` service.
 
-
-
 ## Installation
 
-
-
-```bash- Ubuntu 22.04 LTS
+````bash- Ubuntu 22.04 LTS
 
 git clone https://github.com/genome96/cusproxy.git
 
@@ -60,7 +52,7 @@ sudo bash bootstrap.sh
 
 
 
-```
+````
 
 Host: your-server.com
 
@@ -80,7 +72,7 @@ cd cusproxy
 
 ```
 
-Host: your-server.com```### Available ProxiesServer: `darkanon.store` (34.214.132.38)**Server:** darkanon.store (34.214.132.38)  
+Host: your-server.com```### Available ProxiesServer: `darkanon.store` (34.214.132.38)**Server:** darkanon.store (34.214.132.38)
 
 Port: 1080
 
@@ -88,7 +80,7 @@ Username: socksadmin
 
 Password: your-password
 
-```Run the installer:
+````Run the installer:
 
 
 
@@ -96,7 +88,7 @@ Password: your-password
 
 
 
-```sudo bash bootstrap.sh**1. HTTPS Proxy (Encrypted + Authenticated) ⭐ RECOMMENDED****Platform:** Ubuntu 22.04 LTS  
+```sudo bash bootstrap.sh**1. HTTPS Proxy (Encrypted + Authenticated) ⭐ RECOMMENDED****Platform:** Ubuntu 22.04 LTS
 
 Host: your-server.com
 
@@ -106,13 +98,13 @@ Username: admin
 
 Password: your-password```
 
-```
+````
 
 This will install and configure:
 
 ## Configuration
 
-- Dante (SOCKS5 proxy)Host:     your-server.com---**Location:** AWS Oregon  
+- Dante (SOCKS5 proxy)Host: your-server.com---**Location:** AWS Oregon
 
 ### Change Passwords
 
@@ -120,7 +112,7 @@ This will install and configure:
 
 SOCKS5:
 
-```bash- stunnel (TLS encryption)Port:     8443
+````bash- stunnel (TLS encryption)Port:     8443
 
 sudo passwd socksadmin
 
@@ -166,7 +158,7 @@ curl -x socks5://user:pass@server:1080 http://ifconfig.me/ip
 
 curl -x https://user:pass@server:8443 -k http://ifconfig.me/ip```
 
-```
+````
 
 - ✅ Authentication required
 
@@ -188,7 +180,7 @@ Password: your-password**2. SOCKS5 Proxy (Authenticated, No Encryption)**
 
 ```
 
-```
+````
 
 ### HTTP Proxy
 
@@ -202,13 +194,13 @@ Username: admin
 
 Password: your-passwordProtocol: SOCKS5```- ✅ **Authentication**: Username/password on all protocols
 
-```
+````
 
 Username: your-username
 
 ### Shadowsocks (Encrypted)
 
-```Password: your-passwordHost:     darkanon.store- ✅ **Encryption**: TLS 1.2+ (HTTPS), ChaCha20 (Shadowsocks)
+````Password: your-passwordHost:     darkanon.store- ✅ **Encryption**: TLS 1.2+ (HTTPS), ChaCha20 (Shadowsocks)
 
 Host: your-server.com
 
@@ -218,7 +210,7 @@ Password: your-password
 
 Method: chacha20-ietf-poly1305- ✅ Authentication requiredPort:     8443- ✅ **Auto-Start**: Systemd services (survives reboots)
 
-```
+````
 
 - ❌ No encryption (use on trusted networks only)
 
@@ -228,7 +220,7 @@ Method: chacha20-ietf-poly1305- ✅ Authentication requiredPort:     8443- ✅ *
 
 Change SOCKS5 password:
 
-```
+````
 
 sudo passwd socksadmin
 
@@ -238,25 +230,25 @@ sudo passwd socksadmin
 
 Change HTTP/HTTPS password:```
 
-```
+````
 
-sudo htpasswd -c /etc/squid/passwords adminHost:     your-server.comPassword: SecurePass123!
+sudo htpasswd -c /etc/squid/passwords adminHost: your-server.comPassword: SecurePass123!
 
 sudo systemctl restart vpk-squid vpk-stunnel
 
-```Port:     3128
+````Port: 3128
 
 
 
 Change Shadowsocks password:Protocol: HTTP```---
 
-```
+````
 
 sudo nano /etc/shadowsocks-libev/config.jsonUsername: your-username
 
 sudo systemctl restart vpk-shadowsocks
 
-```Password: your-password- ✅ Full TLS encryption
+````Password: your-password- ✅ Full TLS encryption
 
 
 
@@ -266,7 +258,7 @@ sudo systemctl restart vpk-shadowsocks
 
 Check service status:- ✅ Authentication required## 🚀 Available Protocols
 
-```
+````
 
 sudo systemctl status vpk-dante**4. Shadowsocks (Encrypted)**
 
@@ -276,7 +268,7 @@ sudo systemctl status vpk-stunnel```- ✅ Best for production use
 
 sudo systemctl status vpk-shadowsocks
 
-```Host:     your-server.com
+```Host: your-server.com
 
 
 
@@ -288,11 +280,11 @@ sudo systemctl restart vpk-dantePassword: your-password
 
 sudo systemctl restart vpk-squid
 
-sudo systemctl restart vpk-stunnelMethod:   chacha20-ietf-poly1305**2. SOCKS5 Proxy (Authenticated, No Encryption)**```
+sudo systemctl restart vpk-stunnelMethod: chacha20-ietf-poly1305**2. SOCKS5 Proxy (Authenticated, No Encryption)**```
 
 sudo systemctl restart vpk-shadowsocks
 
-``````
+```````
 
 
 
@@ -954,13 +946,11 @@ curl -x socks5://darkanon.store:1080 http://ifconfig.me/ip```
 
 curl -x socks5://socksadmin:SecurePass123!@darkanon.store:1080 http://ifconfig.me/ipcurl -x https://admin:SecurePass123!@darkanon.store:8443 -k http://ifconfig.me/ip
 
-``````
-
-
+```````
 
 ---### Python Test Scripts
 
-```bash
+````bash
 
 ## 🔒 Security Notes# Test all SOCKS5 configurations
 
@@ -996,7 +986,7 @@ sudo systemctl status vpk-dante
 
 - **Private networks/Testing**: Use port 1080 (SOCKS5)sudo systemctl status vpk-shadowsocks
 
-```
+````
 
 ---
 
@@ -1008,7 +998,7 @@ sudo systemctl restart vpk-dante
 
 ### Service won't startsudo systemctl restart vpk-squid
 
-```bashsudo systemctl restart vpk-stunnel
+````bashsudo systemctl restart vpk-stunnel
 
 # Check logssudo systemctl restart vpk-shadowsocks
 
@@ -1086,7 +1076,7 @@ sudo ufw allow 11080/tcp- 🟢 Safe for: Production, public WiFi, any network
 
 ---### Best Practice
 
-**If you need encryption → Use Port 8443 (HTTPS)**  
+**If you need encryption → Use Port 8443 (HTTPS)**
 
 ## 📊 Technical Details**If encryption not needed → Use Port 1080 (SOCKS5)**
 
@@ -1120,7 +1110,7 @@ sudo ufw allow 11080/tcp- 🟢 Safe for: Production, public WiFi, any network
 
 - **Shadowsocks**: ChaCha20-IETF-Poly1305Protocol: HTTPS
 
-```
+````
 
 ---
 
@@ -1132,7 +1122,7 @@ Use: darkanon.store:1080:socksadmin:SecurePass123!
 
 MIT LicenseProtocol: SOCKS5
 
-```
+````
 
 ---
 
@@ -1156,12 +1146,14 @@ darkanon.store:8443:admin:SecurePass123!
 
 - Secure for any network
 
-**Last Updated:** October 13, 2025  
+**Last Updated:** October 13, 2025
 
 **For speed/testing: Use port 1080 (SOCKS5)****Status:** All services operational ✅
 
-```
+````
+
 darkanon.store:1080:socksadmin:SecurePass123!
+
 ```
 - Fast
 - Authenticated
@@ -1169,5 +1161,6 @@ darkanon.store:1080:socksadmin:SecurePass123!
 
 ---
 
-**Status:** All services operational ✅  
+**Status:** All services operational ✅
 **Last Updated:** October 13, 2025
+```
