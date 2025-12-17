@@ -537,23 +537,28 @@ def parse_quota_string(quota_str: str) -> int:
     quota_str = quota_str.upper().strip()
 
     multipliers = {
-        'B': 1,
-        'KB': 1024,
-        'MB': 1024 ** 2,
-        'GB': 1024 ** 3,
         'TB': 1024 ** 4,
+        'GB': 1024 ** 3,
+        'MB': 1024 ** 2,
+        'KB': 1024,
+        'B': 1,
     }
 
+    # Try matching units (check longer units first)
     for unit, multiplier in multipliers.items():
         if quota_str.endswith(unit):
-            value = float(quota_str[:-len(unit)])
-            return int(value * multiplier)
+            value_str = quota_str[:-len(unit)].strip()
+            try:
+                value = float(value_str)
+                return int(value * multiplier)
+            except ValueError:
+                raise ValueError(f"Invalid quota format: {quota_str}. Could not parse number '{value_str}'")
 
     # Try parsing as plain number (bytes)
     try:
         return int(quota_str)
     except ValueError:
-        raise ValueError(f"Invalid quota format: {quota_str}")
+        raise ValueError(f"Invalid quota format: {quota_str}. Expected format: '100GB', '50MB', etc.")
 
 
 def format_bytes(bytes_val: int) -> str:

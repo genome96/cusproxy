@@ -27,6 +27,7 @@ Create a user for accessing the proxies:
 
 ```bash
 # Replace 'alice' and 'YourSecurePassword!' with your preferred credentials
+# Quota examples: 50GB, 100GB, 1TB, 500MB
 vpk create-user --username alice --password 'YourSecurePassword!' --protocol socks,https --quota 100GB
 ```
 
