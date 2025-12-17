@@ -33,6 +33,15 @@ A production-ready proxy server setup for Ubuntu that provides multiple proxy pr
     - Shadowsocks (Encrypted Proxy)
     - Systemd services for auto-start on boot.
 
+4.  **Initialize the database and create users:**
+    ```bash
+    # Initialize the VPK database
+    sudo -u proxyadmin vpk init-db
+    
+    # Create your first user (for both SOCKS5 and HTTPS proxies)
+    vpk create-user --username alice --password 'YourSecurePassword!' --protocol socks,https --quota 100GB
+    ```
+
 ## Usage
 
 Replace `your-server.com` with your server's actual IP address or domain name.
@@ -45,8 +54,8 @@ This is the most secure option, suitable for all use cases.
 
 - **Host**: `your-server.com`
 - **Port**: `8443`
-- **Username**: `admin`
-- **Password**: The password you set during installation.
+- **Username**: The username you created with `vpk create-user`
+- **Password**: The password you set for that user.
 
 ---
 
@@ -56,8 +65,8 @@ Fast, but not encrypted. Use only on trusted networks.
 
 - **Host**: `your-server.com`
 - **Port**: `1080`
-- **Username**: `socksadmin`
-- **Password**: The password you set for the `socksadmin` user.
+- **Username**: The username you created with `vpk create-user`
+- **Password**: The password you set for that user.
 
 ---
 
@@ -67,8 +76,8 @@ Basic proxy, not encrypted.
 
 - **Host**: `your-server.com`
 - **Port**: `3128`
-- **Username**: `admin`
-- **Password**: The password you set during installation.
+- **Username**: The username you created with `vpk create-user`
+- **Password**: The password you set for that user.
 
 ---
 
@@ -95,27 +104,38 @@ Provides strong encryption, requires a Shadowsocks client.
 
 ## Configuration & Management
 
+### Creating and Managing Users
+
+Users are managed through the `vpk` command-line tool:
+
+- **Create a new user:**
+  ```bash
+  vpk create-user --username john --password 'SecurePass123!' --protocol socks,https --quota 50GB
+  ```
+
+- **List all users:**
+  ```bash
+  vpk list-users
+  ```
+
+- **Change user password:**
+  ```bash
+  vpk update-user --username john --password 'NewPassword456!'
+  ```
+
+- **Delete a user:**
+  ```bash
+  vpk delete-user --username john
+  ```
+
 ### Changing Passwords
 
-- **SOCKS5 (`socksadmin` user):**
+Proxy user passwords are managed via the `vpk` command (see above).
 
-  ```bash
-  sudo passwd socksadmin
-  ```
+For system-level changes:
 
-- **HTTP/HTTPS (`admin` user):**
-  First, ensure `apache2-utils` is installed:
-  ```bash
-  sudo apt-get update && sudo apt-get install -y apache2-utils
-  ```
-  Then, create a new password (this will overwrite the old one):
-  ```bash
-  echo 'your-new-password' | sudo htpasswd -ci /etc/vpk/htpasswd admin
-  ```
-  Finally, restart the proxy services:
-  ```bash
-  sudo systemctl restart vpk-squid vpk-stunnel
-  ```
+- **Shadowsocks password:**
+  Edit the configuration file on your server:
 
 ### Managing Services
 
@@ -136,12 +156,15 @@ You can manage the proxy services using `systemctl`:
 If the `vpk-stunnel` service fails to start or times out, check the systemd service configuration:
 
 1. Verify the service type matches the stunnel configuration:
+
    ```bash
    sudo cat /etc/stunnel/vpk.conf | grep foreground
    ```
+
    If `foreground = yes`, then the systemd service should use `Type=simple`.
 
 2. Fix the service type if needed:
+
    ```bash
    sudo sed -i 's/Type=forking/Type=simple/' /etc/systemd/system/vpk-stunnel.service
    sudo systemctl daemon-reload

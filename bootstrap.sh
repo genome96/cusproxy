@@ -437,10 +437,8 @@ install_vpk_package() {
     # Fix permissions for venv directories
     chmod 755 "${INSTALL_DIR}" "${VENV_DIR}" "${VENV_DIR}/bin"
     
-    # Fix permissions for secret key and config to allow proxyadmin to read
-    chmod 640 "${CONFIG_DIR}/secret.key"
-    chown root:${SERVICE_USER} "${CONFIG_DIR}/secret.key"
-    chmod 644 "${CONFIG_DIR}/config.yml"
+    # Note: secret.key permissions will be set after generation in generate_encryption_key()
+    # chmod 644 "${CONFIG_DIR}/config.yml" will be set in create_config_file()
     
     # Create and fix log file permissions
     touch "${LOG_DIR}/vpk.log"
@@ -461,8 +459,8 @@ generate_encryption_key() {
   # Generate master encryption key (32 bytes = 256 bits)
   if [[ ! -f "${CONFIG_DIR}/secret.key" ]]; then
     openssl rand -base64 32 > "${CONFIG_DIR}/secret.key"
-    chmod 600 "${CONFIG_DIR}/secret.key"
-    chown root:root "${CONFIG_DIR}/secret.key"
+    chmod 640 "${CONFIG_DIR}/secret.key"
+    chown root:${SERVICE_USER} "${CONFIG_DIR}/secret.key"
     log_success "Master encryption key generated"
   else
     log_warn "Encryption key already exists, skipping"
