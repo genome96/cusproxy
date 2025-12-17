@@ -2,9 +2,23 @@
 
 Since your bootstrap installation was interrupted, follow these steps to complete the setup:
 
-## 1. Complete the Installation
+## 1. Update VPK Code (If Already Installed)
 
-SSH into your server and run:
+If you've already run bootstrap.sh and just need to update the VPK code:
+
+```bash
+cd ~/cusproxy
+git pull
+# Copy updated files to installation directory
+sudo cp -r vpk /opt/vps-proxy-kit/
+sudo cp setup.py /opt/vps-proxy-kit/
+sudo chown -R proxyadmin:proxyadmin /opt/vps-proxy-kit/vpk /opt/vps-proxy-kit/setup.py
+# Reinstall the package
+cd /opt/vps-proxy-kit
+sudo -u proxyadmin /opt/vps-proxy-kit/venv/bin/pip install -e . --quiet
+```
+
+Or re-run the full installation:
 
 ```bash
 cd ~/cusproxy
