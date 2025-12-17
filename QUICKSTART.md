@@ -45,6 +45,13 @@ Create a user for accessing the proxies:
 vpk create-user --username alice --password 'YourSecurePassword!' --protocol socks,https --quota 100GB
 ```
 
+**Important for HTTP/HTTPS Proxies**: Users must also be added to the htpasswd file:
+
+```bash
+# Add the user to htpasswd for HTTP/HTTPS proxy authentication
+sudo htpasswd -b /etc/vpk/htpasswd alice 'YourSecurePassword!'
+```
+
 ## 4. Start the Services
 
 Enable and start all proxy services:

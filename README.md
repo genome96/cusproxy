@@ -178,7 +178,48 @@ If the `vpk-stunnel` service fails to start or times out, check the systemd serv
 
 ### Authentication Failures
 
-If you're getting authentication errors, verify you're using the correct password file:
+**Important**: VPK uses different authentication systems for different proxy types:
 
-- For HTTP/HTTPS proxies, check: `/etc/vpk/htpasswd`
-- For SOCKS5, use the system user password: `sudo passwd socksadmin`
+- **SOCKS5**: Uses VPK database via PAM authentication
+- **HTTP/HTTPS**: Uses htpasswd file at `/etc/vpk/htpasswd`
+
+If you're getting authentication errors:
+
+1. **For SOCKS5 proxies**: Users are managed through the VPK database:
+   ```bash
+   # List users
+   vpk list-users
+   
+   # Create a new user
+   vpk create-user --username alice --password 'SecurePass123' --protocol socks --quota 50GB
+   ```
+
+2. **For HTTP/HTTPS proxies**: You must manually sync users to the htpasswd file:
+   ```bash
+   # Add user to htpasswd file
+   sudo htpasswd -b /etc/vpk/htpasswd alice 'SecurePass123'
+   
+   # Verify the user was added
+   sudo cat /etc/vpk/htpasswd
+   
+   # Restart Squid to apply changes
+   sudo systemctl restart vpk-squid
+   ```
+
+3. **Verify htpasswd file permissions** (must be readable by Squid):
+   ```bash
+   ls -la /etc/vpk/htpasswd
+   # Should show: -rw-r----- 1 root proxy
+   
+   # Fix permissions if needed
+   sudo chown root:proxy /etc/vpk/htpasswd
+   sudo chmod 640 /etc/vpk/htpasswd
+   sudo systemctl restart vpk-squid
+   ```
+
+4. **Test authentication manually**:
+   ```bash
+   # Test htpasswd authentication
+   echo "username password" | /usr/lib/squid/basic_ncsa_auth /etc/vpk/htpasswd
+   # Should output: OK
+   ```
