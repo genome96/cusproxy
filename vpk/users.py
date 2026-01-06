@@ -529,23 +529,29 @@ def parse_quota_string(quota_str: str) -> int:
     Parse human-readable quota string to bytes
 
     Args:
-        quota_str: Quota string (e.g., "100GB", "50MB", "1TB")
+        quota_str: Quota string (e.g., "100GB", "50MB", "1TB", "unlimited")
 
     Returns:
-        Quota in bytes
+        Quota in bytes (returns sys.maxsize for "unlimited")
     """
+    import sys
     quota_str = quota_str.upper().strip()
+    
+    # Support unlimited quota
+    if quota_str == 'UNLIMITED':
+        return sys.maxsize
 
-    multipliers = {
-        'TB': 1024 ** 4,
-        'GB': 1024 ** 3,
-        'MB': 1024 ** 2,
-        'KB': 1024,
-        'B': 1,
-    }
+    # Multipliers ordered from longest to shortest to avoid partial matches
+    multipliers = [
+        ('TB', 1024 ** 4),
+        ('GB', 1024 ** 3),
+        ('MB', 1024 ** 2),
+        ('KB', 1024),
+        ('B', 1),
+    ]
 
     # Try matching units (check longer units first)
-    for unit, multiplier in multipliers.items():
+    for unit, multiplier in multipliers:
         if quota_str.endswith(unit):
             value_str = quota_str[:-len(unit)].strip()
             try:
@@ -558,7 +564,7 @@ def parse_quota_string(quota_str: str) -> int:
     try:
         return int(quota_str)
     except ValueError:
-        raise ValueError(f"Invalid quota format: {quota_str}. Expected format: '100GB', '50MB', etc.")
+        raise ValueError(f"Invalid quota format: {quota_str}. Expected format: '100GB', '50MB', '1TB', or 'unlimited'")
 
 
 def format_bytes(bytes_val: int) -> str:
