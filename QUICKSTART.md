@@ -105,6 +105,14 @@ curl -x http://alice:YourSecurePassword!@karlito.tech:3128 http://ifconfig.me/ip
 - Username: alice
 - Password: YourSecurePassword!
 
+## Using a Custom Domain
+
+If you want to use a domain (e.g., `darkanon.store`):
+
+- Set your domain's A record to your VPS IP (e.g., `34.214.132.38`).
+- Make sure your firewall allows proxy ports (1080, 3128, 8443, 11080).
+- If using HTTPS, update your SSL certificates for the new domain.
+
 ## Troubleshooting
 
 If services fail to start, check logs:
@@ -160,3 +168,25 @@ sudo ufw allow 8443/tcp  # HTTPS
 sudo ufw allow 11080/tcp # Shadowsocks
 sudo ufw status
 ```
+
+## Adding a User for All Proxies
+
+1. **Create the VPK user:**
+   ```bash
+   vpk create-user --username anon --password 'carl7641' --protocol socks,https --quota unlimited
+   ```
+2. **Add to htpasswd for HTTP/HTTPS:**
+   ```bash
+   sudo htpasswd -b /etc/vpk/htpasswd anon 'carl7641'
+   ```
+3. **Create system user for SOCKS5 (PAM):**
+   ```bash
+   sudo useradd -M -s /usr/sbin/nologin anon
+   echo 'anon:carl7641' | sudo chpasswd
+   ```
+4. **Restart Squid:**
+   ```bash
+   sudo systemctl restart vpk-squid
+   ```
+
+---

@@ -223,3 +223,72 @@ If you're getting authentication errors:
    echo "username password" | /usr/lib/squid/basic_ncsa_auth /etc/vpk/htpasswd
    # Should output: OK
    ```
+
+### Domain and DNS Setup
+
+To use your proxy with a custom domain (e.g., `darkanon.store`):
+
+1. Point your domain's A record to your VPS IP (e.g., `34.214.132.38`) in your DNS provider (Cloudflare, etc).
+2. Ensure your firewall allows ports 1080, 3128, 8443, 11080.
+3. If using HTTPS, update your SSL certificates for the new domain.
+
+---
+
+### System User for SOCKS5 (PAM)
+
+If you use PAM authentication for SOCKS5, you must create a matching system user:
+
+```bash
+sudo useradd -M -s /usr/sbin/nologin <username>
+echo '<username>:<password>' | sudo chpasswd
+```
+
+Example for user `anon`:
+```bash
+sudo useradd -M -s /usr/sbin/nologin anon
+echo 'anon:carl7641' | sudo chpasswd
+```
+
+---
+
+### Fixing Squid Log Directory Permissions
+
+If Squid fails to start with a log error:
+
+```bash
+sudo chown -R proxy:proxy /var/log/vpk
+sudo chmod 755 /var/log/vpk
+sudo systemctl restart vpk-squid
+```
+
+---
+
+### htpasswd File Permissions
+
+Ensure the htpasswd file is readable by Squid:
+
+```bash
+sudo chown root:proxy /etc/vpk/htpasswd
+sudo chmod 640 /etc/vpk/htpasswd
+```
+
+---
+
+### Example: Add a New User for All Proxies
+
+```bash
+# Add to VPK (SOCKS5/HTTPS)
+vpk create-user --username anon --password 'carl7641' --protocol socks,https --quota unlimited
+
+# Add to htpasswd (HTTP/HTTPS)
+sudo htpasswd -b /etc/vpk/htpasswd anon 'carl7641'
+
+# Add system user for SOCKS5 (PAM)
+sudo useradd -M -s /usr/sbin/nologin anon
+echo 'anon:carl7641' | sudo chpasswd
+
+# Restart Squid
+tsudo systemctl restart vpk-squid
+```
+
+---
