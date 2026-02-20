@@ -536,7 +536,7 @@ def parse_quota_string(quota_str: str) -> int:
     """
     import sys
     quota_str = quota_str.upper().strip()
-    
+
     # Support unlimited quota
     if quota_str == 'UNLIMITED':
         return sys.maxsize
@@ -558,13 +558,15 @@ def parse_quota_string(quota_str: str) -> int:
                 value = float(value_str)
                 return int(value * multiplier)
             except ValueError:
-                raise ValueError(f"Invalid quota format: {quota_str}. Could not parse number '{value_str}'")
+                raise ValueError(
+                    f"Invalid quota format: {quota_str}. Could not parse number '{value_str}'")
 
     # Try parsing as plain number (bytes)
     try:
         return int(quota_str)
     except ValueError:
-        raise ValueError(f"Invalid quota format: {quota_str}. Expected format: '100GB', '50MB', '1TB', or 'unlimited'")
+        raise ValueError(
+            f"Invalid quota format: {quota_str}. Expected format: '100GB', '50MB', '1TB', or 'unlimited'")
 
 
 def format_bytes(bytes_val: int) -> str:

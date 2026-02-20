@@ -23,9 +23,11 @@ A production-ready proxy server setup for Ubuntu that provides multiple proxy pr
     ```
 
 3.  **Run the installation script:**
+
     ```bash
     sudo bash bootstrap.sh
     ```
+
     This script will automatically install and configure:
     - Dante (SOCKS5 Proxy)
     - Squid (HTTP/HTTPS Proxy)
@@ -34,10 +36,11 @@ A production-ready proxy server setup for Ubuntu that provides multiple proxy pr
     - Systemd services for auto-start on boot.
 
 4.  **Initialize the database and create users:**
+
     ```bash
     # Initialize the VPK database
     sudo -u proxyadmin vpk init-db
-    
+
     # Create your first user (for both SOCKS5 and HTTPS proxies)
     vpk create-user --username alice --password 'YourSecurePassword!' --protocol socks,https --quota 100GB
     ```
@@ -109,16 +112,19 @@ Provides strong encryption, requires a Shadowsocks client.
 Users are managed through the `vpk` command-line tool:
 
 - **Create a new user:**
+
   ```bash
   vpk create-user --username john --password 'SecurePass123!' --protocol socks,https --quota 50GB
   ```
 
 - **List all users:**
+
   ```bash
   vpk list-users
   ```
 
 - **Change user password:**
+
   ```bash
   vpk update-user --username john --password 'NewPassword456!'
   ```
@@ -186,31 +192,34 @@ If the `vpk-stunnel` service fails to start or times out, check the systemd serv
 If you're getting authentication errors:
 
 1. **For SOCKS5 proxies**: Users are managed through the VPK database:
+
    ```bash
    # List users
    vpk list-users
-   
+
    # Create a new user
    vpk create-user --username alice --password 'SecurePass123' --protocol socks --quota 50GB
    ```
 
 2. **For HTTP/HTTPS proxies**: You must manually sync users to the htpasswd file:
+
    ```bash
    # Add user to htpasswd file
    sudo htpasswd -b /etc/vpk/htpasswd alice 'SecurePass123'
-   
+
    # Verify the user was added
    sudo cat /etc/vpk/htpasswd
-   
+
    # Restart Squid to apply changes
    sudo systemctl restart vpk-squid
    ```
 
 3. **Verify htpasswd file permissions** (must be readable by Squid):
+
    ```bash
    ls -la /etc/vpk/htpasswd
    # Should show: -rw-r----- 1 root proxy
-   
+
    # Fix permissions if needed
    sudo chown root:proxy /etc/vpk/htpasswd
    sudo chmod 640 /etc/vpk/htpasswd
@@ -244,6 +253,7 @@ echo '<username>:<password>' | sudo chpasswd
 ```
 
 Example for user `anon`:
+
 ```bash
 sudo useradd -M -s /usr/sbin/nologin anon
 echo 'anon:carl7641' | sudo chpasswd

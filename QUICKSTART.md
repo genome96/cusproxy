@@ -92,6 +92,7 @@ curl -x http://alice:YourSecurePassword!@karlito.tech:3128 http://ifconfig.me/ip
 ### For MoreLogin or similar proxy clients:
 
 **HTTPS Proxy (Recommended):**
+
 - Protocol: HTTPS
 - Host: karlito.tech
 - Port: 8443
@@ -99,6 +100,7 @@ curl -x http://alice:YourSecurePassword!@karlito.tech:3128 http://ifconfig.me/ip
 - Password: YourSecurePassword!
 
 **SOCKS5 Proxy (Faster, no encryption):**
+
 - Protocol: SOCKS5
 - Host: karlito.tech
 - Port: 1080
